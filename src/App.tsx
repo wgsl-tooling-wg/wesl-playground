@@ -79,6 +79,13 @@ function getHashFromUrl() {
   }
 }
 
+function removeHash() {
+  if (hasHash) {
+    window.history.pushState({}, "", "/")
+    hasHash = false
+  }
+}
+
 function onPopState(e: PopStateEvent) {
   const hash = getHashFromUrl()
   if (hash) {
@@ -106,14 +113,13 @@ function createLocalStore<T extends object>(name: string, init: T): [Store<T>, S
     init = JSON.parse(localStorage.getItem(name))
   }
   const [state, setState] = createStore<T>(init);
-  createEffect(() => {
-    if (hasHash) {
-      window.history.pushState({}, "", "/")
-      hasHash = false
-    }
 
+  createEffect(() => {
+    // changing any setting invalidates the playground url
+    removeHash()
     localStorage.setItem(name, JSON.stringify(state))
-  });
+  })
+
   return [state, setState];
 }
 
@@ -126,7 +132,6 @@ const newFile = () => {
 }
 
 const delFile = (i: number) => {
-  setTab(0)
   setFiles(files => removeIndex(files, i))
 }
 
@@ -155,6 +160,7 @@ const source = () => files[tab()]?.source ?? ''
 const [diagnostics, setDiagnostics] = createSignal<Diagnostic[]>([])
 const [output, setOutput] = createSignal('')
 const [message, setMessage] = createSignal(DEFAULT_MESSAGE)
+const _ = () => console.log(source)
 
 // this effect ensures that there is always at least 1 tab open.
 createEffect(() => {
@@ -162,6 +168,8 @@ createEffect(() => {
     setFiles([{ name: 'main.wgsl', source: 'fn main() -> u32 {\n    return 0u;\n}\n' }])
   }
 })
+
+createEffect(on(linker, removeHash))
 
 let runTimeout = 0
 function toggleAutoRun(toggle: boolean) {
@@ -211,8 +219,8 @@ function run_k2d222() {
   } catch (e) {
     console.error('compilation failure', e)
     const err = e as Error
-    setOutput('')
     setMessage(err.message)
+    setOutput('')
     setDiagnostics(err.diagnostics)
   }
 }
@@ -232,8 +240,8 @@ function run_ncth() {
     setDiagnostics([])
   } catch (e) {
     console.error('compilation failure', e)
-    setOutput('')
     setMessage(e)
+    setOutput('')
     setDiagnostics([])
   }
 }
@@ -241,6 +249,7 @@ function run_ncth() {
 function reset() {
   setFiles(DEFAULT_FILES())
   setOptions(DEFAULT_OPTIONS)
+  setMessage(DEFAULT_MESSAGE)
   setOutput('')
   setTab(0)
 }
@@ -268,7 +277,8 @@ async function share() {
     const hash = await response.text()
     const url = new URL(`${window.location.origin}/s/${hash}`)
     window.history.pushState(hash, "", url)
-    setOutput('copy the URL below share this playground.\n' + url.toString())
+    setMessage(`copy the URL below share this playground.\n<a href="${url}">${url}</a>`)
+    setOutput('')
     hasHash = true
   }
   catch (error) {
@@ -318,7 +328,8 @@ async function setShare(hash: String) {
     }
 
     const url = new URL(`${window.location.origin}/s/${hash}`)
-    setOutput('loaded shared playground.\n' + url.toString())
+    setMessage(`loaded shared playground.\n<a href="${url}">${url}</a>`)
+    setOutput('')
     hasHash = true
   }
   catch (error) {
@@ -339,11 +350,21 @@ function setupMonacoInput(elt: HTMLElement) {
     theme: 'vs',
   });
 
-  editor.getModel().onDidChangeContent(() => setSource(editor.getValue()))
+  // keeping track of the editor value() avoids calling editor.setValue() when source()
+  // changed as a result of editing.
+  let currentValue = ''
 
-  createEffect(on(tab, () => {
-    editor.setValue(source())
-  }))
+  editor.getModel().onDidChangeContent(() => {
+    currentValue = editor.getValue()
+    setSource(currentValue)
+  })
+
+  createEffect(() => {
+    if (source() !== currentValue) {
+      currentValue = source()
+      editor.setValue(currentValue)
+    }
+  })
 
   createEffect(() => {
     const model = editor.getModel()
