@@ -2,16 +2,9 @@ import { compile, WeslOptions, ManglerKind, NcthOptions, compile_ncth, type Erro
 
 // import * as monaco from 'monaco-editor';
 // more barebones version below:
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
-import 'monaco-editor/esm/vs/editor/browser/coreCommands'
-import 'monaco-editor/esm/vs/editor/contrib/find/browser/findController'
-import 'monaco-editor/esm/vs/editor/common/standaloneStrings'
-import 'monaco-editor/esm/vs/base/browser/ui/codicons/codiconStyles'; // The codicons are defined here and must be loaded
-import 'monaco-editor/esm/vs/basic-languages/wgsl/wgsl.contribution'
-import 'monaco-editor/esm/vs/editor/contrib/hover/browser/hoverContribution.js';
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
+import monaco, { editorWorker } from './monaco'
 
-import { For, type Component, createSignal, createEffect, Show, onMount, onCleanup, on } from 'solid-js'
+import { For, type Component, createSignal, createEffect, Show, onMount, onCleanup, on, observable, createReaction } from 'solid-js'
 import { createStore, type SetStoreFunction, type Store } from "solid-js/store"
 import './style.scss'
 
@@ -160,7 +153,6 @@ const source = () => files[tab()]?.source ?? ''
 const [diagnostics, setDiagnostics] = createSignal<Diagnostic[]>([])
 const [output, setOutput] = createSignal('')
 const [message, setMessage] = createSignal(DEFAULT_MESSAGE)
-const _ = () => console.log(source)
 
 // this effect ensures that there is always at least 1 tab open.
 createEffect(() => {
@@ -172,14 +164,24 @@ createEffect(() => {
 createEffect(on(linker, removeHash))
 
 let runTimeout = 0
+
 function toggleAutoRun(toggle: boolean) {
   clearTimeout(runTimeout)
+  runTimeout = 0
   if (toggle) {
+    const src = observable(source)
     function loop() {
-      run()
-      runTimeout = setTimeout(loop, 1000)
+      if (runTimeout) {
+        track(() => source())
+        run()
+      }
     }
-    loop()
+    const track = createReaction(() => {
+      runTimeout = setTimeout(loop, 500)
+    })
+
+    track(() => source())
+    run()
   }
 }
 
