@@ -88,18 +88,32 @@ fn compile_impl(args: WeslOptions) -> Result<String, wesl::Error> {
     let compile_options = wesl::CompileOptions {
         use_imports: args.imports,
         use_condcomp: args.condcomp,
+        use_generics: false,
         strip: args.strip,
         entry_points: args.entrypoints,
         features: args.features,
     };
 
-    let (wgsl, mut sourcemap) =
+    let (wgsl, sourcemap) =
         wesl::compile_with_sourcemap(&root, &resolver, &mangler, &compile_options);
     let wgsl = wgsl?;
 
     if let Some(eval) = args.eval {
-        sourcemap.set_default_source(eval.clone());
-        let inst = wesl::eval_with_sourcemap(&eval, &wgsl, &sourcemap)?;
+        let inst = (|| {
+            let expr = eval
+                .parse::<syntax::Expression>()
+                .map_err(|e| wesl::Diagnostic::from(e).with_source(eval.clone()))?;
+
+            let (res, ctx) = wesl::eval(&expr, &wgsl);
+            res.map_err(|e| {
+                wesl::Diagnostic::from(e)
+                    .with_source(eval)
+                    .with_ctx(&ctx)
+                    .with_sourcemap(&sourcemap)
+            })
+        })()?;
+        // sourcemap.set_default_source(eval.clone());
+        // let inst = wesl::eval_with_sourcemap(&eval, &wgsl, &sourcemap)?;
         Ok(inst.to_string())
     } else {
         Ok(wgsl.to_string())
@@ -216,11 +230,9 @@ pub fn compile(args: WeslOptions) -> Result<String, JsValue> {
                     wesl::ResolveError::Error(d),
                 )) => {
                     if let wesl::Diagnostic {
-                        error,
-                        source,
                         file: Some(file),
-                        declaration,
                         span: Some(span),
+                        ..
                     } = d
                     {
                         vec![Diagnostic {
