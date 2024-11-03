@@ -8,8 +8,9 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["debug"]
+default = ["debug", "ansi-to-html", "naga", "ncthbrt"]
 debug = ["console_log", "console_error_panic_hook"]
+ncthbrt = ["wesl-parse", "wesl-bundle", "wesl-resolve", "wesl-types", "wesl-mangle", "wesl-flatten", "wesl-dealias", "wesl-specialize", "wesl-template-normalize"]
 
 [dependencies]
 wasm-bindgen = "0.2.84"
@@ -18,29 +19,30 @@ wasm-bindgen = "0.2.84"
 # logging them with `console.error`. This is great for development, but requires
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
 # code size when deploying.
-console_error_panic_hook = { version = "0.1.7", optional = true }
-console_log = { version = "1.0.0", features = ["color"], optional = true }
 log = "0.4.22"
 cfg-if = "0.1"
 serde = { version = "1.0.210", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
 tsify = "0.4.5"
-wesl = { path = "../../wgsl-tools/crates/wesl" }
-ansi-to-html = "0.2.1"
 
-wesl-parse = { path = '../../wesl-rust/crates/wesl-parse' }
-wesl-bundle = { path = '../../wesl-rust/crates/wesl-bundle' }
-wesl-resolve = { path = '../../wesl-rust/crates/wesl-resolve' }
-wesl-types = { path = '../../wesl-rust/crates/wesl-types' }
-wesl-mangle = { path = '../../wesl-rust/crates/wesl-mangle' }
-wesl-flatten = { path = '../../wesl-rust/crates/wesl-flatten' }
-wesl-dealias = { path = '../../wesl-rust/crates/wesl-dealias' }
-wesl-specialize = { path = '../../wesl-rust/crates/wesl-specialize' }
-wesl-template-normalize = { path = '../../wesl-rust/crates/wesl-template-normalize' }
+console_error_panic_hook = { version = "0.1.7", optional = true }
+console_log = { version = "1.0.0", features = ["color"], optional = true }
 
+wesl = { path = "../../wgsl-tools/crates/wesl", optional = true }
 
-[dev-dependencies]
-wasm-bindgen-test = "0.3.34"
+ansi-to-html = { version = "0.2.1", optional = true }
+
+wesl-parse = { path = '../../wesl-rust/crates/wesl-parse', optional = true }
+wesl-bundle = { path = '../../wesl-rust/crates/wesl-bundle', optional = true }
+wesl-resolve = { path = '../../wesl-rust/crates/wesl-resolve', optional = true }
+wesl-types = { path = '../../wesl-rust/crates/wesl-types', optional = true }
+wesl-mangle = { path = '../../wesl-rust/crates/wesl-mangle', optional = true }
+wesl-flatten = { path = '../../wesl-rust/crates/wesl-flatten', optional = true }
+wesl-dealias = { path = '../../wesl-rust/crates/wesl-dealias', optional = true }
+wesl-specialize = { path = '../../wesl-rust/crates/wesl-specialize', optional = true }
+wesl-template-normalize = { path = '../../wesl-rust/crates/wesl-template-normalize', optional = true }
+
+naga = { version = "23.0.0", features = ["wgsl-in", "wgsl-out"], optional = true }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.

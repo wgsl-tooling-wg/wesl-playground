@@ -4,7 +4,6 @@ use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
-use wesl::*;
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
@@ -36,6 +35,7 @@ pub struct WeslOptions {
     pub eval: Option<String>,
 }
 
+#[cfg(feature = "ncthbrt")]
 #[derive(Tsify, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct NcthOptions {
@@ -64,15 +64,10 @@ pub struct Error {
     diagnostics: Vec<Diagnostic>,
 }
 
-fn make_mangler(kind: ManglerKind) -> Box<dyn Mangler> {
-    match kind {
-        ManglerKind::Escape => Box::new(MANGLER_ESCAPE),
-        ManglerKind::Hash => Box::new(MANGLER_HASH),
-        ManglerKind::None => Box::new(MANGLER_NONE),
-    }
-}
-
+#[cfg(feature = "wesl")]
 fn compile_impl(args: WeslOptions) -> Result<String, wesl::Error> {
+    use wesl::*;
+
     let mut resolver = VirtualFileResolver::new();
 
     for (name, source) in args.files {
@@ -82,7 +77,11 @@ fn compile_impl(args: WeslOptions) -> Result<String, wesl::Error> {
 
     let root: Resource = PathBuf::from(args.root).into();
 
-    let mangler = make_mangler(args.mangler);
+    let mangler: Box<dyn Mangler> = match args.mangler {
+        ManglerKind::Escape => Box::new(MANGLER_ESCAPE),
+        ManglerKind::Hash => Box::new(MANGLER_HASH),
+        ManglerKind::None => Box::new(MANGLER_NONE),
+    };
     let mangler = CachedMangler::new(&mangler);
 
     let compile_options = wesl::CompileOptions {
@@ -120,6 +119,7 @@ fn compile_impl(args: WeslOptions) -> Result<String, wesl::Error> {
     }
 }
 
+#[cfg(feature = "ncthbrt")]
 fn compile_impl_ncthbrt(args: NcthOptions) -> Result<String, String> {
     use wesl_types::{CompilerPass, CompilerPassError};
     let root_path = PathBuf::from(&args.root);
@@ -217,39 +217,77 @@ cfg_if! {
     }
 }
 
+#[cfg(feature = "wesl")]
+fn wesl_err_to_diagnostic(e: wesl::Error) -> Error {
+    Error {
+        #[cfg(feature = "ansi-to-html")]
+        message: ansi_to_html::convert(&e.to_string()).unwrap(),
+        #[cfg(not(feature = "ansi-to-html"))]
+        message: e.to_string(),
+        diagnostics: match e {
+            wesl::Error::Error(d) => {
+                if let wesl::Diagnostic {
+                    file: Some(file),
+                    span: Some(span),
+                    ..
+                } = d
+                {
+                    vec![Diagnostic {
+                        file: file.path().with_extension("wgsl").display().to_string(),
+                        span: span.range(),
+                        title: "error here".to_string(),
+                    }]
+                } else {
+                    vec![]
+                }
+            }
+            _ => vec![],
+        },
+    }
+}
+
+fn validate(src: String) -> Result<String, Error> {
+    #[cfg(feature = "naga")]
+    let src = {
+        use naga::back::wgsl::WriterFlags;
+        use naga::valid::{Capabilities, ValidationFlags};
+        let module = naga::front::wgsl::parse_str(&src).map_err(|e| Error {
+            message: e.message().to_string(),
+            diagnostics: vec![],
+        })?;
+        let mut validator =
+            naga::valid::Validator::new(ValidationFlags::all(), Capabilities::all());
+        let info = validator.validate(&module).map_err(|e| Error {
+            message: e.emit_to_string(&src),
+            diagnostics: vec![],
+        })?;
+        let flags = WriterFlags::EXPLICIT_TYPES;
+        naga::back::wgsl::write_string(&module, &info, flags).map_err(|e| Error {
+            message: e.to_string(),
+            diagnostics: vec![],
+        })?
+    };
+    Ok(src)
+}
+
 #[wasm_bindgen]
 pub fn compile(args: WeslOptions) -> Result<String, JsValue> {
     init_log();
-    compile_impl(args)
-        .map_err(|e| Error {
-            message: ansi_to_html::convert(&e.to_string()).unwrap(),
-            diagnostics: match e {
-                wesl::Error::Error(d)
-                | wesl::Error::ResolveError(wesl::ResolveError::Error(d))
-                | wesl::Error::ImportError(wesl::ImportError::ResolveError(
-                    wesl::ResolveError::Error(d),
-                )) => {
-                    if let wesl::Diagnostic {
-                        file: Some(file),
-                        span: Some(span),
-                        ..
-                    } = d
-                    {
-                        vec![Diagnostic {
-                            file: file.path().with_extension("wgsl").display().to_string(),
-                            span: span.range(),
-                            title: "error here".to_string(),
-                        }]
-                    } else {
-                        vec![]
-                    }
-                }
-                _ => vec![],
-            },
-        })
+
+    #[cfg(feature = "wesl")]
+    let src = compile_impl(args).map_err(wesl_err_to_diagnostic);
+
+    #[cfg(not(feature = "wesl"))]
+    let src = args.files.get(&args.root).cloned().ok_or(Error {
+        message: format!("file `{}` not found", args.root),
+        diagnostics: vec![],
+    });
+
+    src.and_then(validate)
         .map_err(|e| serde_wasm_bindgen::to_value(&e).unwrap())
 }
 
+#[cfg(feature = "ncthbrt")]
 #[wasm_bindgen]
 pub fn compile_ncth(args: NcthOptions) -> Result<String, String> {
     init_log();
