@@ -33,6 +33,10 @@ pub struct WeslOptions {
     pub entrypoints: Option<Vec<String>>,
     pub features: HashMap<String, bool>,
     pub eval: Option<String>,
+    #[serde(default)]
+    pub bindings: Option<HashMap<(u32, u32), String>>,
+    #[serde(default)]
+    pub overrides: Option<HashMap<String, String>>,
 }
 
 #[cfg(feature = "ncthbrt")]
@@ -66,6 +70,8 @@ pub struct Error {
 
 #[cfg(feature = "wesl")]
 fn compile_impl(args: WeslOptions) -> Result<String, wesl::Error> {
+    use eval::{Context, Eval, RefInstance};
+    use syntax::TranslationUnit;
     use wesl::*;
 
     let mut resolver = VirtualFileResolver::new();
@@ -97,13 +103,50 @@ fn compile_impl(args: WeslOptions) -> Result<String, wesl::Error> {
         wesl::compile_with_sourcemap(&root, &resolver, &mangler, &compile_options);
     let wgsl = wgsl?;
 
+    let empty_code = TranslationUnit::default();
+    let mut empty_ctx = Context::new(&empty_code);
+
+    let bindings = args
+        .bindings
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(key, eval)| {
+            let expr = eval
+                .parse::<syntax::Expression>()
+                .map_err(|e| wesl::Diagnostic::from(e).with_source(eval.clone()))?;
+            let inst = expr
+                .eval_value(&mut empty_ctx)
+                .map_err(|e| wesl::Diagnostic::from(e).with_source(eval.clone()))?;
+            let inst = RefInstance::new(
+                inst,
+                syntax::AddressSpace::Storage(None),
+                syntax::AccessMode::ReadWrite,
+            );
+            Ok((key, inst))
+        })
+        .collect::<Result<_, Diagnostic<Error>>>()?;
+    let overrides = args
+        .overrides
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(key, eval)| {
+            let expr = eval
+                .parse::<syntax::Expression>()
+                .map_err(|e| wesl::Diagnostic::from(e).with_source(eval.clone()))?;
+            let inst = expr
+                .eval_value(&mut empty_ctx)
+                .map_err(|e| wesl::Diagnostic::from(e).with_source(eval.clone()))?;
+            Ok((key, inst))
+        })
+        .collect::<Result<_, Diagnostic<Error>>>()?;
+
     if let Some(eval) = args.eval {
         let inst = (|| {
             let expr = eval
                 .parse::<syntax::Expression>()
                 .map_err(|e| wesl::Diagnostic::from(e).with_source(eval.clone()))?;
 
-            let (res, ctx) = wesl::eval(&expr, &wgsl);
+            let (res, ctx) = wesl::eval_runtime(&expr, &wgsl, bindings, overrides);
             res.map_err(|e| {
                 wesl::Diagnostic::from(e)
                     .with_source(eval)

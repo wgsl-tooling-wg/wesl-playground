@@ -8,7 +8,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["debug", "ansi-to-html", "naga", "ncthbrt"]
+default = ["debug", "ansi-to-html", "naga", "ncthbrt", "wesl"]
 debug = ["console_log", "console_error_panic_hook"]
 ncthbrt = ["wesl-parse", "wesl-bundle", "wesl-resolve", "wesl-types", "wesl-mangle", "wesl-flatten", "wesl-dealias", "wesl-specialize", "wesl-template-normalize"]
 
