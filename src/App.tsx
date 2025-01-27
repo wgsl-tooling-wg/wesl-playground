@@ -1,5 +1,3 @@
-import { compile, WeslOptions, ManglerKind, NcthOptions, compile_ncth, type Error, Diagnostic } from "./wesl-web/wesl_web"
-
 // import * as monaco from 'monaco-editor';
 // more barebones version below:
 import monaco, { editorWorker } from './monaco'
@@ -7,30 +5,36 @@ import monaco, { editorWorker } from './monaco'
 import { For, type Component, createSignal, createEffect, Show, onMount, onCleanup, on, observable, createReaction } from 'solid-js'
 import { createStore, type SetStoreFunction, type Store } from "solid-js/store"
 import './style.scss'
+import * as wesl from './wesl-web/wesl_web'
+import './app'
+import { DropButton } from './DropButton'
 
-const DEFAULT_FILES = () => [
-  { name: 'main.wgsl', source: 'import util/my_fn;\nfn main() -> u32 {\n    return my_fn();\n}\n' },
-  { name: 'util.wgsl', source: 'fn my_fn() -> u32 { return 42; }' },
-]
-const DEFAULT_OPTIONS = {
+const DEFAULT_FILES = () => ([
+  { name: 'main', source: 'import super::util::my_fn;\nfn main() -> u32 {\n    return my_fn();\n}\n' },
+  { name: 'util', source: 'fn my_fn() -> u32 { return 42; }' },
+])
+const DEFAULT_OPTIONS = () => ({
+  command: 'Compile',
+  // compile args
   root: 'main.wgsl',
+  mangler: 'escape',
+  sourcemap: true,
   imports: true,
   condcomp: true,
+  generics: false,
   strip: false,
-  entrypoints: '',
-  mangler: 'escape' as ManglerKind,
-  eval: '',
-  features: '',
-}
-const DEFAULT_OPTIONS_NCTH = {
-    root: 'main.wgsl',
-    resolve: true,
-    normalize: true,
-    specialize: true,
-    dealias: true,
-    mangle: true,
-    flatten: true,
-}
+  lower: true,
+  validate: true,
+  naga: false,
+  entrypoints: [],
+  features: {},
+  // eval args
+  runtime: false,
+  expr: '',
+  // bindings: new Map(),
+  overrides: {},
+})
+
 const DEFAULT_MESSAGE =
 `Visit the <a href="https://github.com/wgsl-tooling-wg/wesl-spec">WESL reference</a> to learn about WESL.<br/>
 <br/>
@@ -74,7 +78,7 @@ function getHashFromUrl() {
 
 function removeHash() {
   if (hasHash) {
-    window.history.pushState({}, "", "/")
+    window.history.pushState({}, '', '/')
     hasHash = false
   }
 }
@@ -103,7 +107,23 @@ onCleanup(() => {
 
 function createLocalStore<T extends object>(name: string, init: T): [Store<T>, SetStoreFunction<T>] {
   if (localStorage.getItem(name) !== null) {
-    init = JSON.parse(localStorage.getItem(name))
+    try {
+      const parsed = JSON.parse(localStorage.getItem(name))
+      if (typeof parsed === typeof init) {
+        if (typeof init === 'object') {
+          for (const key in parsed)
+            if (key in init && typeof parsed[key] === typeof init[key]) {
+              init[key] = parsed[key]
+            } else {
+              localStorage.removeItem(name)
+            }
+        } else {
+          init = parsed
+        }
+      } else {
+        localStorage.removeItem(name)
+      }
+    } catch (_) { }
   }
   const [state, setState] = createStore<T>(init);
 
@@ -121,7 +141,7 @@ function removeIndex<T>(array: readonly T[], index: number): T[] {
 }
 
 const newFile = () => {
-  setFiles(files.length, { name: `tab${files.length}.wgsl`, source: "" })
+  setFiles(files.length, { name: `tab${files.length + 1}`, source: '' })
 }
 
 const delFile = (i: number) => {
@@ -132,27 +152,22 @@ const renameFile = (i: number, name: string) => {
   setFiles(i, (old) => ({ name, source: old.source }))
 }
 
-const initialLinker = URL_PARAMS.get('linker') ?? 'k2d222'
-const initialOptions = { ...DEFAULT_OPTIONS }
-const initialOptionsNcth = { ...DEFAULT_OPTIONS_NCTH }
+const initialLinker = URL_PARAMS.get('linker') ?? 'wesl-rs'
+const initialOptions = DEFAULT_OPTIONS()
 for (const key in DEFAULT_OPTIONS)
   if (URL_PARAMS.has(key))
     initialOptions[key] = URL_PARAMS.get(key)
-for (const key in DEFAULT_OPTIONS_NCTH)
-  if (URL_PARAMS.has(key))
-    initialOptionsNcth[key] = URL_PARAMS.get(key)
 
 const [files, setFiles] = createLocalStore('files', DEFAULT_FILES())
 const [options, setOptions] = createLocalStore('options', initialOptions)
-const [optionsNcth, setOptionsNcth] = createLocalStore('optionsNcth', initialOptionsNcth)
 const [linker, setLinker] = createSignal(initialLinker)
 const [tab, setTab] = createSignal(0)
+const [diagnostics, setDiagnostics] = createSignal<wesl.Diagnostic[]>([])
+const [output, setOutput] = createSignal('')
+const [message, setMessage] = createSignal(DEFAULT_MESSAGE)
 
 const setSource = (source: string) => setFiles(tab(), { name: files[tab()].name, source })
 const source = () => files[tab()]?.source ?? ''
-const [diagnostics, setDiagnostics] = createSignal<Diagnostic[]>([])
-const [output, setOutput] = createSignal('')
-const [message, setMessage] = createSignal(DEFAULT_MESSAGE)
 
 // this effect ensures that there is always at least 1 tab open.
 createEffect(() => {
@@ -186,71 +201,33 @@ function toggleAutoRun(toggle: boolean) {
 }
 
 function run() {
-  if (linker() === 'k2d222') {
-    return run_k2d222()
-  }
-  else if (linker() === 'ncthbrt') {
-    run_ncth()
-  }
-}
-
-function run_k2d222() {
-  const entrypoints = options.entrypoints === '' ? null : options.entrypoints.split(',').map(e => e.trim())
-  const features = Object.fromEntries(
-    options.features
-      .split(',')
-      .map(f => f.split('=', 2).map(x => x.trim()))
-      .map(f => f.length === 1 ? [f[0], true] : [f[0], !!f[1] && f[1] !== 'false'])
-    )
-  const eval_ = options.eval === '' ? null : options.eval
-  const comp: WeslOptions = {
+  if (linker() === 'wesl-rs') {
+    // const entrypoints = options.entrypoints === '' ? null : options.entrypoints.split(',').map(e => e.trim())
+    const command = {
       ...options,
-      files: Object.fromEntries(files.map(f => [f.name, f.source])),
-      features,
-      entrypoints,
-      eval: eval_,
-  }
+      files: Object.fromEntries(files.map(({ name, source }) => ([ name, source ]))),
+    } as wesl.Command
 
-  console.log('compiling', comp)
-
-  try {
-    const res = compile(comp)
-    setMessage('')
-    setOutput(res)
-    setDiagnostics([])
-  } catch (e) {
-    console.error('compilation failure', e)
-    const err = e as Error
-    setMessage(err.message)
-    setOutput('')
-    setDiagnostics(err.diagnostics)
-  }
-}
-
-function run_ncth() {
-  const comp: NcthOptions = {
-      ...optionsNcth,
-      files: Object.fromEntries(files.map(f => [f.name, f.source])),
-  }
-
-  console.log('compiling', comp)
-
-  try {
-    const res = compile_ncth(comp)
-    setMessage('')
-    setOutput(res)
-    setDiagnostics([])
-  } catch (e) {
-    console.error('compilation failure', e)
-    setMessage(e)
-    setOutput('')
-    setDiagnostics([])
+    console.log('compiling', command)
+    try {
+      const res = wesl.run(command)
+      console.log('compilation result', {source: res})
+      setMessage('')
+      setOutput(res)
+      setDiagnostics([])
+    } catch (e) {
+      console.error('compilation failure', e)
+      const err = e as wesl.Error
+      setMessage(err.message)
+      setOutput(err.source ?? '')
+      setDiagnostics(err.diagnostics)
+    }
   }
 }
 
 function reset() {
   setFiles(DEFAULT_FILES())
-  setOptions(DEFAULT_OPTIONS)
+  setOptions(DEFAULT_OPTIONS())
   setMessage(DEFAULT_MESSAGE)
   setOutput('')
   setTab(0)
@@ -317,16 +294,14 @@ async function setShare(hash: String) {
       setLinker(data.linker)
     }
     if (typeof data.options === 'object') {
-      const curOptions = linker() === 'k2d222' ? {...options} : linker() === 'ncthbrt' ? {...optionsNcth} : {}
+      const curOptions = linker() === 'wesl-rs' ? {...options} : {}
       for (const key in data.options) {
         if (key in curOptions && typeof data.options[key] === typeof curOptions[key]) {
           curOptions[key] = data.options[key]
         }
       }
-      if (linker() === 'k2d222')
+      if (linker() === 'wesl-rs')
         setOptions(curOptions)
-      else if (linker() === 'ncthbrt')
-        setOptionsNcth(optionsNcth)
     }
 
     const url = new URL(`${window.location.origin}/s/${hash}`)
@@ -398,10 +373,28 @@ function setupMonacoOutput(elt: HTMLElement) {
     automaticLayout: true,
     theme: 'vs',
     readOnly: true,
+    renderValidationDecorations: 'on',
   });
 
   createEffect(() => {
     editor.setValue(output())
+  })
+
+  createEffect(() => {
+    const model = editor.getModel()
+    const markers = diagnostics().filter(d => d.file === 'output').map(d => {
+      const p1 = model.getPositionAt(d.span.start)
+      const p2 = model.getPositionAt(d.span.end)
+      return {
+        startLineNumber: p1.lineNumber,
+        startColumn: p1.column,
+        endLineNumber: p2.lineNumber,
+        endColumn: p2.column,
+        message: d.title,
+        severity: monaco.MarkerSeverity.Error
+      }
+    })
+    monaco.editor.setModelMarkers(editor.getModel(), 'wesl', markers)
   })
 }
 
@@ -442,132 +435,132 @@ function TabBtn(props: TabBtnProps) {
   )
 }
 
-const App: Component = () => {
-  return (
-    <div id="app">
-      <div id="header">
-        <h3>WESL Playground</h3>
-        <button id="btn-run" onclick={run}>compile</button>
-        <button id="btn-reset" onclick={reset}>reset</button>
-        <button id="btn-share" onclick={share}>share</button>
-        <label>
-          <span>auto recompile</span>
-          <input type="checkbox" name="linker" value="k2d222" onChange={e => toggleAutoRun(e.currentTarget.checked)} />
-        </label>
-        <label>
-          <span>k2d222's linker</span>
-          <input type="radio" name="linker" value="k2d222" checked={linker() === "k2d222"} onchange={e => setLinker(e.currentTarget.value)} />
-        </label>
-        <label>
-          <span>ncthbrt's linker</span>
-          <input type="radio" name="linker" value="ncthbrt" checked={linker() === "ncthbrt"} onchange={e => setLinker(e.currentTarget.value)} />
-        </label>
-      </div>
-      <div id="left">
-        <div class="wrap">
-          <div class="head tabs">
-            <For each={files}>{(file, i) => 
-              <TabBtn name={file.name}
-                selected={i() == tab()}
-                onselect={() => setTab(i)}
-                onrename={name => renameFile(i(), name)}
-                ondelete={() => delFile(i())} />
-            }</For>
-            <div class="tab-btn" role="button" tabindex="0" onclick={newFile}>
-              <button tabindex="0">
-                <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12L20 12M12 4L12 20"></path></svg>
-              </button>
-            </div>
+function strFeatures(features: { [name: string]: boolean }): string {
+  return Object.entries(features).map(([name, enabled]) => `${name}=${enabled}`).join(', ')
+}
+function parseFeatures(str: string): { [name: string]: boolean } {
+  return Object.fromEntries(
+    str
+      .split(',')
+      .map(f => f.split('=', 2).map(x => x.trim()))
+      .filter(f => f[0] !== '')
+      .map(f => f.length === 1 ? [f[0], true] : [f[0], !!f[1] && !['false', '0'].includes(f[1])])
+    )
+}
+
+function strEntrypoints(entrypoints: string[]): string {
+  return entrypoints.join(', ')
+}
+function parseEntrypoints(str: string): string[] {
+  return str.split(',').map(s => s.trim())
+}
+
+const Options: Component = () =>
+  <div id="options">
+    <span>Features</span>
+    <label>
+      <input type="checkbox" checked={options.imports} onchange={e => setOptions('imports', e.currentTarget.checked)} />
+      <span>imports</span>
+    </label>
+    <label>
+      <input type="checkbox" checked={options.condcomp} onchange={e => setOptions('condcomp', e.currentTarget.checked)} />
+      <span>conditional translation</span>
+    </label>
+    <label>
+      <input type="checkbox" checked={options.generics} onchange={e => setOptions('generics', e.currentTarget.checked)} />
+      <span>generics</span>
+    </label>
+    <label>
+      <input type="checkbox" checked={options.strip} onchange={e => setOptions('strip', e.currentTarget.checked)} />
+      <span>strip dead code</span>
+    </label>
+    <label>
+      <input type="checkbox" checked={options.lower} onchange={e => setOptions('lower', e.currentTarget.checked)} />
+      <span>polyfills</span>
+    </label>
+    <label>
+      <input type="checkbox" checked={options.validate} onchange={e => setOptions('validate', e.currentTarget.checked)} />
+      <span>validation</span>
+    </label>
+    <label>
+      <input type="checkbox" checked={options.naga} onchange={e => setOptions('naga', e.currentTarget.checked)} />
+      <span>naga validation</span>
+    </label>
+    <span>Configuration</span>
+    <label>
+      <span>root file</span>
+      <select value={options.root} onchange={e => setOptions('root', e.currentTarget.value)}>
+        <For each={files}>{file => 
+          <option value={file.name}>{file.name}</option>
+        }</For>
+      </select>
+    </label>
+    <label>
+      <span>mangler</span>
+      <select value={options.mangler} onchange={e => setOptions('mangler', e.currentTarget.value as wesl.ManglerKind)}>
+        <option value="none">None</option>
+        <option value="hash">Hash</option>
+        <option value="escape">Escape</option>
+      </select>
+    </label>
+    <label classList={{ 'disabled': !options.condcomp }}>
+      <span>cond. comp. features</span>
+      <input type="text" disabled={!options.condcomp} value={strFeatures(options.features)} onchange={e => {
+        setOptions(({ features, ...opts }) => ({ ...opts, features: parseFeatures(e.currentTarget.value) }))
+      }} />
+    </label>
+    <label classList={{ 'disabled': !options.strip }}>
+      <span>strip: keep declarations</span>
+      <input type="text" disabled={!options.strip} value={strEntrypoints(options.entrypoints)} onchange={e => setOptions('entrypoints', () => parseEntrypoints(e.currentTarget.value))} />
+    </label>
+  </div>
+
+const App: Component = () =>
+  <div id="app">
+    <div id="header">
+      <h3>WESL Playground</h3>
+      <button id="btn-run" onclick={run}>compile</button>
+      <button id="btn-reset" onclick={reset}>reset</button>
+      <button id="btn-share" onclick={share}>share</button>
+      <DropButton label="options"><Options/></DropButton>
+      <label>
+        <span>auto recompile</span>
+        <input type="checkbox" name="auto-recompile" onChange={e => toggleAutoRun(e.currentTarget.checked)} />
+      </label>
+      <label>
+        <span>wesl-rs</span>
+        <input type="radio" name="linker" value="wesl-rs" checked={linker() === 'wesl-rs'} onchange={e => setLinker(e.currentTarget.value)} />
+      </label>
+      <label>
+        <span>wesl-js</span>
+        <input type="radio" name="linker" value="wesl-js" checked={linker() === 'wesl-js'} onchange={e => setLinker(e.currentTarget.value)} />
+      </label>
+    </div>
+    <div id="left">
+      <div class="wrap">
+        <div class="head tabs">
+          <For each={files}>{(file, i) => 
+            <TabBtn name={file.name}
+              selected={i() == tab()}
+              onselect={() => setTab(i)}
+              onrename={name => renameFile(i(), name)}
+              ondelete={() => delFile(i())} />
+          }</For>
+          <div class="tab-btn" role="button" tabindex="0" onclick={newFile}>
+            <button tabindex="0">
+              <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12L20 12M12 4L12 20"></path></svg>
+            </button>
           </div>
-          <div id="input" ref={elt => setupMonacoInput(elt)}></div>
         </div>
-      </div>
-      <div id="right">
-        <div class="wrap">
-          <div id="options" class="head">
-            <Show when={linker() === 'k2d222'}>
-              <label>
-                <span>imports</span>
-                <input type="checkbox" checked={options.imports} onchange={e => setOptions("imports", e.currentTarget.checked)} />
-              </label>
-              <label>
-                <span>conditionals</span>
-                <input type="checkbox" checked={options.condcomp} onchange={e => setOptions("condcomp", e.currentTarget.checked)} />
-              </label>
-              <label>
-                <span>features</span>
-                <input type="text" disabled={!options.condcomp} value={options.features} onchange={e => setOptions("features", e.currentTarget.value)} />
-              </label>
-              <label>
-                <span>mangler</span>
-                <select value={options.mangler} onchange={e => setOptions("mangler", e.currentTarget.value as ManglerKind)}>
-                  <option value="none">None</option>
-                  <option value="hash">Hash</option>
-                  <option value="escape">Escape</option>
-                </select>
-              </label>
-              <label>
-                <span>root</span>
-                <select value={options.root} onchange={e => setOptions("root", e.currentTarget.value)}>
-                  <For each={files}>{file => 
-                    <option value={file.name}>{file.name}</option>
-                  }</For>
-                </select>
-              </label>
-              <label>
-                <span>strip</span>
-                <input type="checkbox" checked={options.strip} onchange={e => setOptions("strip", e.currentTarget.checked)} />
-              </label>
-              <label>
-                <span>keep</span>
-                <input type="text" disabled={!options.strip} value={options.entrypoints} onchange={e => setOptions("entrypoints", e.currentTarget.value)} />
-              </label>
-              <label>
-                <span>eval</span>
-                <input type="text" value={options.eval} onchange={e => setOptions("eval", e.currentTarget.value)} />
-              </label>
-            </Show>
-            <Show when={linker() === 'ncthbrt'}>
-              <label>
-                <span>root</span>
-                <select value={optionsNcth.root} onchange={e => setOptionsNcth("root", e.currentTarget.value)}>
-                  <For each={files}>{file => 
-                    <option value={file.name}>{file.name}</option>
-                  }</For>
-                </select>
-              </label>
-              <label>
-                <span>resolve</span>
-                <input type="checkbox" checked={optionsNcth.resolve} onchange={e => setOptionsNcth("resolve", e.currentTarget.checked)} />
-              </label>
-              <label>
-                <span>normalize</span>
-                <input type="checkbox" checked={optionsNcth.normalize} onchange={e => setOptionsNcth("normalize", e.currentTarget.checked)} />
-              </label>
-              <label>
-                <span>specialize</span>
-                <input type="checkbox" checked={optionsNcth.specialize} onchange={e => setOptionsNcth("specialize", e.currentTarget.checked)} />
-              </label>
-              <label>
-                <span>dealias</span>
-                <input type="checkbox" checked={optionsNcth.dealias} onchange={e => setOptionsNcth("dealias", e.currentTarget.checked)} />
-              </label>
-              <label>
-                <span>mangle</span>
-                <input type="checkbox" checked={optionsNcth.mangle} onchange={e => setOptionsNcth("mangle", e.currentTarget.checked)} />
-              </label>
-              <label>
-                <span>flatten</span>
-                <input type="checkbox" checked={optionsNcth.flatten} onchange={e => setOptionsNcth("flatten", e.currentTarget.checked)} />
-              </label>
-            </Show>
-          </div>
-          <div id="message" style={{ display: message() ? 'initial' : 'none' }}><pre innerHTML={message()}></pre></div>
-          <div id="output" style={{ display: output() ? 'initial' : 'none' }} ref={elt => setupMonacoOutput(elt)}></div>
-        </div>
+        <div id="input" ref={elt => setupMonacoInput(elt)}></div>
       </div>
     </div>
-  );
-};
+    <div id="right">
+      <div class="wrap">
+        <div id="message" style={{ display: message() ? 'initial' : 'none' }}><pre innerHTML={message()}></pre></div>
+        <div id="output" style={{ display: output() ? 'initial' : 'none' }} ref={elt => setupMonacoOutput(elt)}></div>
+      </div>
+    </div>
+  </div>
 
 export default App;
