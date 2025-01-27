@@ -106,25 +106,25 @@ onCleanup(() => {
 })
 
 function createLocalStore<T extends object>(name: string, init: T): [Store<T>, SetStoreFunction<T>] {
-  if (localStorage.getItem(name) !== null) {
+  const VERSION = '1'
+  const version = localStorage.getItem('version')
+
+  if (localStorage.getItem(name) !== null && version === VERSION) {
     try {
       const parsed = JSON.parse(localStorage.getItem(name))
       if (typeof parsed === typeof init) {
-        if (typeof init === 'object') {
-          for (const key in parsed)
-            if (key in init && typeof parsed[key] === typeof init[key]) {
-              init[key] = parsed[key]
-            } else {
-              localStorage.removeItem(name)
-            }
-        } else {
-          init = parsed
-        }
+        init = parsed
       } else {
         localStorage.removeItem(name)
       }
     } catch (_) { }
   }
+
+  if (version !== VERSION) {
+    localStorage.clear()
+    localStorage.setItem('version', VERSION)
+  }
+
   const [state, setState] = createStore<T>(init);
 
   createEffect(() => {
