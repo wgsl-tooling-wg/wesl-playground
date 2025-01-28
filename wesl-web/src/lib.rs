@@ -126,14 +126,14 @@ cfg_if! {
 }
 
 fn wesl_err_to_diagnostic(e: wesl::Error, source: Option<String>) -> Error {
+    let d = wesl::Diagnostic::from(e);
     Error {
-        source,
+        source: source.or_else(|| d.output.clone()),
         #[cfg(feature = "ansi-to-html")]
-        message: ansi_to_html::convert(&e.to_string()).unwrap(),
+        message: ansi_to_html::convert(&d.to_string()).unwrap(),
         #[cfg(not(feature = "ansi-to-html"))]
         message: e.to_string(),
         diagnostics: {
-            let d = wesl::Diagnostic::from(e);
             if let (Some(span), Some(res)) = (&d.span, &d.resource) {
                 vec![Diagnostic {
                     file: res.path().with_extension("wgsl").display().to_string(),

@@ -172,8 +172,7 @@ input[type=text] {
 }
 
 #input,
-#output,
-#message {
+#right {
   position: relative;
 
   &::after {
@@ -187,15 +186,15 @@ input[type=text] {
 }
 
 #message {
-  padding: .5rem;
+  padding: 1rem .5rem;
   width: 100%;
-  height: 100%;
+  border-bottom: 1px solid lightgrey;
+  background: #eeeeee;
 
   >pre {
     margin: 0;
     overflow: auto;
     width: 100%;
-    height: 100%;
   }
 }
 
