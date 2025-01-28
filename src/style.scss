@@ -68,8 +68,25 @@ input[type=text] {
   gap: 1rem;
   align-items: center;
 
-  h3 {
+  h2 {
     margin: 0;
+  }
+
+  a#github-logo {
+    margin-left: auto;
+
+    img {
+      width: 3rem;
+      height: 3rem;
+    }
+  }
+
+  a#wesl-logo {
+    img {
+      width: 4rem;
+      height: 4rem;
+      filter: drop-shadow(0px 0px 2px #000000aa);
+    }
   }
 
   button {
@@ -303,7 +320,6 @@ input[type=text] {
       margin-right: .5rem;
     }
   }
-
 
   &::before {
     content: '';

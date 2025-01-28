@@ -8,6 +8,8 @@ import './style.scss'
 import * as wesl from './wesl-web/wesl_web'
 import './app'
 import { DropButton } from './DropButton'
+import GithubLogo from './assets/github-mark.svg'
+import WeslLogo from './assets/wesl-notext.svg'
 
 const DEFAULT_FILES = () => ([
   { name: 'main', source: 'import super::util::my_fn;\nfn main() -> u32 {\n    return my_fn();\n}\n' },
@@ -518,7 +520,8 @@ const Options: Component = () =>
 const App: Component = () =>
   <div id="app">
     <div id="header">
-      <h3>WESL Playground</h3>
+      <a id='wesl-logo' href='https://github.com/wgsl-tooling-wg/wesl-spec'><img src={WeslLogo} alt='WESL-Spec GitHub repository' /></a>
+      <h2>WESL Playground</h2>
       <button id="btn-run" onclick={run}>compile</button>
       <button id="btn-reset" onclick={reset}>reset</button>
       <button id="btn-share" onclick={share}>share</button>
@@ -533,8 +536,9 @@ const App: Component = () =>
       </label>
       <label>
         <span>wesl-js</span>
-        <input type="radio" name="linker" value="wesl-js" checked={linker() === 'wesl-js'} onchange={e => setLinker(e.currentTarget.value)} />
+        <input type="radio" disabled name="linker" value="wesl-js" checked={linker() === 'wesl-js'} onchange={e => setLinker(e.currentTarget.value)} />
       </label>
+      <a id='github-logo'  href='https://github.com/wgsl-tooling-wg/wesl-playground'><img src={GithubLogo} alt='WESL-Sandbox GitHub repository' /></a>
     </div>
     <div id="left">
       <div class="wrap">
