@@ -126,6 +126,7 @@ cfg_if! {
 }
 
 fn wesl_err_to_diagnostic(e: wesl::Error, source: Option<String>) -> Error {
+    log::debug!("{e:?}");
     let d = wesl::Diagnostic::from(e);
     Error {
         source: source.or_else(|| d.output.clone()),
@@ -136,7 +137,7 @@ fn wesl_err_to_diagnostic(e: wesl::Error, source: Option<String>) -> Error {
         diagnostics: {
             if let (Some(span), Some(res)) = (&d.span, &d.resource) {
                 vec![Diagnostic {
-                    file: res.path().with_extension("wgsl").display().to_string(),
+                    file: res.path().with_extension("").display().to_string(),
                     span: span.range(),
                     title: d.error_message(),
                 }]

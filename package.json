@@ -18,12 +18,13 @@
     "vite": "^5.0.11",
     "vite-plugin-monaco-editor": "^1.1.0",
     "vite-plugin-solid": "^2.8.2",
+    "vite-plugin-top-level-await": "^1.4.4",
     "vite-plugin-wasm": "^3.3.0"
   },
   "dependencies": {
+    "@solid-primitives/deep": "^0.3.0",
     "monaco-editor": "^0.52.0",
-    "solid-js": "^1.9.4",
-    "vite-plugin-top-level-await": "^1.4.4"
+    "solid-js": "^1.9.4"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

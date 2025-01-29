@@ -4,6 +4,8 @@ import monaco, { editorWorker } from './monaco'
 
 import { For, type Component, createSignal, createEffect, Show, onMount, onCleanup, on, observable, createReaction } from 'solid-js'
 import { createStore, type SetStoreFunction, type Store } from "solid-js/store"
+import { trackStore } from "@solid-primitives/deep";
+
 import './style.scss'
 import * as wesl from './wesl-web/wesl_web'
 import './app'
@@ -28,7 +30,7 @@ const DEFAULT_OPTIONS = () => ({
   lower: true,
   validate: true,
   naga: false,
-  entrypoints: [],
+  entrypoints: undefined,
   features: {},
   // eval args
   runtime: false,
@@ -186,10 +188,9 @@ function toggleAutoRun(toggle: boolean) {
   clearTimeout(runTimeout)
   runTimeout = 0
   if (toggle) {
-    const src = observable(source)
     function loop() {
       if (runTimeout) {
-        track(() => source())
+        track(() => { trackStore(options); source() })
         run()
       }
     }
@@ -197,7 +198,7 @@ function toggleAutoRun(toggle: boolean) {
       runTimeout = setTimeout(loop, 500)
     })
 
-    track(() => source())
+    track(() => {  trackStore(options); source() })
     run()
   }
 }
@@ -224,6 +225,8 @@ function run() {
       setOutput(err.source ?? '')
       setDiagnostics(err.diagnostics)
     }
+  } else if (linker() === 'wesl-js') {
+    // TODO
   }
 }
 
@@ -450,11 +453,14 @@ function parseFeatures(str: string): { [name: string]: boolean } {
     )
 }
 
-function strEntrypoints(entrypoints: string[]): string {
-  return entrypoints.join(', ')
+function strEntrypoints(entrypoints: string[] | undefined): string {
+  return (entrypoints ?? []).join(', ')
 }
-function parseEntrypoints(str: string): string[] {
-  return str.split(',').map(s => s.trim())
+function parseEntrypoints(str: string): string[] | undefined {
+  let res = str.split(',').map(s => s.trim()).filter(s => s !== '')
+  if (res.length) {
+    return res
+  }
 }
 
 const Options: Component = () =>
@@ -536,7 +542,7 @@ const App: Component = () =>
       </label>
       <label>
         <span>wesl-js</span>
-        <input type="radio" disabled name="linker" value="wesl-js" checked={linker() === 'wesl-js'} onchange={e => setLinker(e.currentTarget.value)} />
+        <input type="radio" name="linker" value="wesl-js" checked={linker() === 'wesl-js'} onchange={e => setLinker(e.currentTarget.value)} />
       </label>
       <a id='github-logo'  href='https://github.com/wgsl-tooling-wg/wesl-playground'><img src={GithubLogo} alt='WESL-Sandbox GitHub repository' /></a>
     </div>
