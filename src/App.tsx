@@ -2,7 +2,7 @@
 // more barebones version below:
 import monaco, { editorWorker } from './monaco'
 
-import { For, type Component, createSignal, createEffect, Show, onMount, onCleanup, on, observable, createReaction } from 'solid-js'
+import { For, type Component, createSignal, createEffect, onMount, onCleanup, on, createReaction } from 'solid-js'
 import { createStore, type SetStoreFunction, type Store } from "solid-js/store"
 import { trackStore } from "@solid-primitives/deep";
 
@@ -17,6 +17,8 @@ const DEFAULT_FILES = () => ([
   { name: 'main', source: 'import super::util::my_fn;\nfn main() -> u32 {\n    return my_fn();\n}\n' },
   { name: 'util', source: 'fn my_fn() -> u32 { return 42; }' },
 ])
+
+// /!\ remember to bump the storage version when you modify this struct!
 const DEFAULT_OPTIONS = () => ({
   command: 'Compile',
   // compile args
@@ -30,6 +32,7 @@ const DEFAULT_OPTIONS = () => ({
   lower: true,
   validate: true,
   naga: false,
+  lazy: true,
   entrypoints: undefined,
   features: {},
   // eval args
@@ -87,7 +90,7 @@ function removeHash() {
   }
 }
 
-function onPopState(e: PopStateEvent) {
+function onPopState(_e: PopStateEvent) {
   const hash = getHashFromUrl()
   if (hash) {
     console.log(`share hash: ${hash}`)
@@ -110,7 +113,7 @@ onCleanup(() => {
 })
 
 function createLocalStore<T extends object>(name: string, init: T): [Store<T>, SetStoreFunction<T>] {
-  const VERSION = '1'
+  const VERSION = '2'
   const version = localStorage.getItem('version')
 
   if (localStorage.getItem(name) !== null && version === VERSION) {

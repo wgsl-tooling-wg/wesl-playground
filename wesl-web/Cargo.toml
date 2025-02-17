@@ -13,7 +13,6 @@ debug = ["console_log", "console_error_panic_hook"]
 
 [dependencies]
 log = "0.4.22"
-cfg-if = "0.1"
 serde = { version = "1.0.215", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
 tsify = { version = "0.4.5", features = ["js"], default-features = false }
@@ -25,7 +24,7 @@ tsify = { version = "0.4.5", features = ["js"], default-features = false }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 console_log = { version = "1.0.0", features = ["color"], optional = true }
 
-wesl = { path = "../../wesl/crates/wesl" }
+wesl = { path = "../../wesl/crates/wesl", features = ["eval", "serde"] }
 
 ansi-to-html = { version = "0.2.1", optional = true }
 

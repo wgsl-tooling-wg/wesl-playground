@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
-use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
-use wesl::{CompileResult, VirtualResolver, Wesl};
+use wesl::{
+    eval::{ty_eval_ty, EvalAttrs, HostShareable, Instance, RefInstance, Ty},
+    syntax::{self, AccessMode, AddressSpace, TranslationUnit},
+    CompileResult, Eval, VirtualResolver, Wesl,
+};
 
 #[derive(Tsify, Clone, Copy, Debug, Default, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
@@ -32,9 +35,11 @@ impl From<ManglerKind> for wesl::ManglerKind {
 pub enum Command {
     Compile(CompileOptions),
     Eval(EvalOptions),
+    Exec(ExecOptions),
+    Dump(DumpOptions),
 }
 
-#[derive(Tsify, Debug, Serialize, Deserialize)]
+#[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CompileOptions {
     #[tsify(type = "{ [name: string]: string }")]
@@ -50,31 +55,105 @@ pub struct CompileOptions {
     pub lower: bool,
     pub validate: bool,
     pub naga: bool,
+    pub lazy: bool,
     #[serde(default)]
-    pub entrypoints: Option<Vec<String>>,
+    pub keep: Option<Vec<String>>,
     #[tsify(type = "{ [name: string]: boolean }")]
     pub features: HashMap<String, bool>,
 }
 
-#[derive(Tsify, Debug, Serialize, Deserialize)]
+#[derive(Tsify, Clone, Copy, Debug, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+enum BindingType {
+    #[serde(rename = "uniform")]
+    Uniform,
+    #[serde(rename = "storage")]
+    Storage,
+    #[serde(rename = "read-only-storage")]
+    ReadOnlyStorage,
+    #[serde(rename = "filtering")]
+    Filtering,
+    #[serde(rename = "non-filtering")]
+    NonFiltering,
+    #[serde(rename = "comparison")]
+    Comparison,
+    #[serde(rename = "float")]
+    Float,
+    #[serde(rename = "unfilterable-float")]
+    UnfilterableFloat,
+    #[serde(rename = "sint")]
+    Sint,
+    #[serde(rename = "uint")]
+    Uint,
+    #[serde(rename = "depth")]
+    Depth,
+    #[serde(rename = "write-only")]
+    WriteOnly,
+    #[serde(rename = "read-write")]
+    ReadWrite,
+    #[serde(rename = "read-only")]
+    ReadOnly,
+}
+
+#[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct Binding {
+    group: u32,
+    binding: u32,
+    kind: BindingType,
+    #[tsify(type = "Uint8Array")]
+    #[serde(with = "serde_bytes")]
+    data: Box<[u8]>,
+}
+
+#[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct EvalOptions {
     #[serde(flatten)]
     pub compile: CompileOptions,
-    pub runtime: bool,
-    pub expr: String,
+    pub expression: String,
+}
+
+#[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct ExecOptions {
+    #[serde(flatten)]
+    pub compile: CompileOptions,
+    pub entrypoint: String,
     #[serde(default)]
-    pub bindings: HashMap<(u32, u32), String>,
+    pub resources: Vec<Binding>,
     #[serde(default)]
     #[tsify(type = "{ [name: string]: string }")]
     pub overrides: HashMap<String, String>,
+}
+
+#[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct DumpOptions {
+    source: String,
+}
+
+#[derive(Clone, Debug, thiserror::Error)]
+enum CliError {
+    #[error("resource `@group({0}) @binding({1})` not found")]
+    ResourceNotFound(u32, u32),
+    #[error(
+        "resource `@group({0}) @binding({1})` ({2} bytes) incompatible with type `{3}` ({4} bytes)"
+    )]
+    ResourceIncompatible(u32, u32, u32, wesl::eval::Type, u32),
+    #[error("Could not convert instance to buffer (type `{0}` is not storable)")]
+    NotStorable(wesl::eval::Type),
+    #[error("{0}")]
+    Wesl(#[from] wesl::Error),
+    #[error("{0}")]
+    Diagnostic(#[from] wesl::Diagnostic<wesl::Error>),
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Diagnostic {
     file: String,
-    span: std::ops::Range<usize>,
+    span: std::ops::Range<u32>,
     title: String,
 }
 
@@ -89,56 +168,140 @@ pub struct Error {
 fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
     let mut resolver = VirtualResolver::new();
 
-    for (path, source) in &args.files {
-        resolver.add_module(path, source.clone());
+    for (path, source) in args.files {
+        resolver.add_module(path, source.into());
     }
 
     let comp = Wesl::new_barebones()
+        .set_custom_resolver(resolver)
         .set_options(wesl::CompileOptions {
-            use_imports: args.imports,
-            use_condcomp: args.condcomp,
-            use_generics: args.generics,
-            use_stripping: args.strip,
-            use_lower: args.lower,
-            use_validate: args.validate,
-            entry_points: args.entrypoints,
+            imports: args.imports,
+            condcomp: args.condcomp,
+            generics: args.generics,
+            strip: args.strip,
+            lower: args.lower,
+            validate: args.validate,
+            lazy: args.lazy,
+            keep: args.keep,
             features: args.features,
         })
         .use_sourcemap(args.sourcemap)
-        .set_custom_resolver(resolver)
         .set_mangler(args.mangler.into())
         .compile(args.root)?;
     Ok(comp)
 }
 
-cfg_if! {
-    if #[cfg(feature = "debug")] {
-        fn init_log() {
-            static ONCE: std::sync::Once = std::sync::Once::new();
-            ONCE.call_once(|| {
-                std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-                console_log::init_with_level(log::Level::Debug).expect("error initializing log");
-            })
-        }
-    } else {
-        fn init_log() {}
+fn parse_binding(
+    b: &Binding,
+    wgsl: &TranslationUnit,
+) -> Result<((u32, u32), RefInstance), CliError> {
+    let mut ctx = wesl::eval::Context::new(wgsl);
+
+    let ty_expr = wgsl
+        .global_declarations
+        .iter()
+        .find_map(|d| match d {
+            syntax::GlobalDeclaration::Declaration(d) => {
+                let (group, binding) = d.attr_group_binding(&mut ctx).ok()?;
+                if group == b.group && binding == b.binding {
+                    d.ty.clone()
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        })
+        .ok_or_else(|| CliError::ResourceNotFound(b.group, b.binding))?;
+
+    let ty = ty_eval_ty(&ty_expr, &mut ctx).map_err(|e| {
+        wesl::Diagnostic::from(e)
+            .with_ctx(&ctx)
+            .with_source(ty_expr.to_string())
+    })?;
+    let (storage, access) = match b.kind {
+        BindingType::Uniform => (AddressSpace::Uniform, AccessMode::Read),
+        BindingType::Storage => (
+            AddressSpace::Storage(Some(AccessMode::ReadWrite)),
+            AccessMode::ReadWrite,
+        ),
+        BindingType::ReadOnlyStorage => (
+            AddressSpace::Storage(Some(AccessMode::Read)),
+            AccessMode::Read,
+        ),
+        BindingType::Filtering => todo!(),
+        BindingType::NonFiltering => todo!(),
+        BindingType::Comparison => todo!(),
+        BindingType::Float => todo!(),
+        BindingType::UnfilterableFloat => todo!(),
+        BindingType::Sint => todo!(),
+        BindingType::Uint => todo!(),
+        BindingType::Depth => todo!(),
+        BindingType::WriteOnly => todo!(),
+        BindingType::ReadWrite => todo!(),
+        BindingType::ReadOnly => todo!(),
+    };
+    let inst = Instance::from_buffer(&b.data, &ty, &mut ctx).ok_or_else(|| {
+        CliError::ResourceIncompatible(
+            b.group,
+            b.binding,
+            b.data.len() as u32,
+            ty.clone(),
+            ty.size_of(&mut ctx).unwrap_or_default(),
+        )
+    })?;
+    Ok((
+        (b.group, b.binding),
+        RefInstance::new(inst, storage, access),
+    ))
+}
+
+fn parse_override(src: &str, wgsl: &TranslationUnit) -> Result<Instance, CliError> {
+    let mut ctx = wesl::eval::Context::new(wgsl);
+    let expr = src
+        .parse::<syntax::Expression>()
+        .map_err(|e| wesl::Diagnostic::from(e).with_source(src.to_string()))?;
+    let inst = expr.eval_value(&mut ctx).map_err(|e| {
+        wesl::Diagnostic::from(e)
+            .with_ctx(&ctx)
+            .with_source(src.to_string())
+    })?;
+    Ok(inst)
+}
+
+#[wasm_bindgen]
+pub fn init_log(level: &str) {
+    #[cfg(feature = "debug")]
+    {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| {
+            std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+            let level = match level {
+                "Error" => log::Level::Error,
+                "Warn" => log::Level::Warn,
+                "Info" => log::Level::Info,
+                "Debug" => log::Level::Debug,
+                "Trace" => log::Level::Trace,
+                _ => log::Level::Info,
+            };
+            console_log::init_with_level(level).expect("error initializing log");
+        })
     }
 }
 
 fn wesl_err_to_diagnostic(e: wesl::Error, source: Option<String>) -> Error {
-    log::debug!("{e:?}");
+    log::debug!("[WESL] error: {e:?}");
     let d = wesl::Diagnostic::from(e);
     Error {
         source: source.or_else(|| d.output.clone()),
         #[cfg(feature = "ansi-to-html")]
         message: ansi_to_html::convert(&d.to_string()).unwrap(),
         #[cfg(not(feature = "ansi-to-html"))]
-        message: e.to_string(),
+        message: d.to_string(),
         diagnostics: {
             if let (Some(span), Some(res)) = (&d.span, &d.resource) {
                 vec![Diagnostic {
                     file: res.path().with_extension("").display().to_string(),
-                    span: span.range(),
+                    span: span.start as u32..span.end as u32,
                     title: d.error_message(),
                 }]
             } else {
@@ -163,10 +326,13 @@ fn run_naga(src: &str) -> Result<(), Error> {
         message: e.emit_to_string(src),
         diagnostics: e
             .spans()
-            .map(|(span, msg)| Diagnostic {
-                file: "output".to_string(),
-                span: span.to_range().unwrap_or_default(),
-                title: msg.to_string(),
+            .map(|(span, msg)| {
+                let range = span.to_range().unwrap_or_default();
+                Diagnostic {
+                    file: "output".to_string(),
+                    span: range.start as u32..range.end as u32,
+                    title: msg.to_string(),
+                }
             })
             .collect(),
     })?;
@@ -179,47 +345,121 @@ fn run_naga(src: &str) -> Result<(), Error> {
     Ok(())
 }
 
+enum RunResult {
+    Compile(TranslationUnit),
+    Dump(TranslationUnit),
+    Eval(Instance),
+    Exec(Vec<Binding>),
+}
+
+fn run_impl(args: Command) -> Result<RunResult, Error> {
+    match args {
+        Command::Compile(args) => {
+            let comp = run_compile(args).map_err(|e| wesl_err_to_diagnostic(e, None))?;
+
+            Ok(RunResult::Compile(comp.syntax))
+        }
+        Command::Eval(args) => {
+            let comp =
+                run_compile(args.compile.clone()).map_err(|e| wesl_err_to_diagnostic(e, None))?;
+
+            let eval = comp
+                .eval(&args.expression)
+                .map_err(|e| wesl_err_to_diagnostic(e, Some(comp.to_string())))?;
+
+            Ok(RunResult::Eval(eval.inst))
+        }
+        Command::Exec(args) => {
+            let comp =
+                run_compile(args.compile.clone()).map_err(|e| wesl_err_to_diagnostic(e, None))?;
+
+            let resources = (|| -> Result<_, CliError> {
+                let resources = args
+                    .resources
+                    .iter()
+                    .map(|b| parse_binding(b, &comp.syntax))
+                    .collect::<Result<_, _>>()?;
+
+                let overrides = args
+                    .overrides
+                    .iter()
+                    .map(|(name, expr)| -> Result<(String, Instance), CliError> {
+                        Ok((name.to_string(), parse_override(expr, &comp.syntax)?))
+                    })
+                    .collect::<Result<_, _>>()?;
+
+                let mut exec = comp.exec(&args.entrypoint, resources, overrides)?;
+
+                let resources = args
+                    .resources
+                    .iter()
+                    .map(|r| {
+                        let inst = exec
+                            .resource(r.group, r.binding)
+                            .ok_or_else(|| CliError::ResourceNotFound(r.group, r.binding))?
+                            .clone();
+                        let inst = inst.read().map_err(wesl::Error::from)?.to_owned();
+                        let mut res = r.clone();
+                        res.data = inst
+                            .to_buffer(&mut exec.ctx)
+                            .ok_or_else(|| CliError::NotStorable(exec.inst.ty()))?
+                            .into_boxed_slice();
+                        Ok(res)
+                    })
+                    .collect::<Result<Vec<_>, CliError>>()?;
+
+                Ok(resources)
+            })()
+            .map_err(|e| match e {
+                CliError::Wesl(e) => wesl_err_to_diagnostic(e, Some(comp.to_string())),
+                e => Error {
+                    source: Some(comp.to_string()),
+                    message: e.to_string(),
+                    diagnostics: Vec::new(),
+                },
+            })?;
+
+            Ok(RunResult::Exec(resources))
+        }
+        Command::Dump(args) => {
+            let wesl = args
+                .source
+                .parse::<syntax::TranslationUnit>()
+                .map_err(|e| wesl_err_to_diagnostic(e.into(), None))?;
+            Ok(RunResult::Dump(wesl))
+        }
+    }
+}
+
 #[wasm_bindgen]
 pub fn run(
     #[wasm_bindgen(unchecked_param_type = "Command")] args: JsValue,
-) -> Result<String, JsValue> {
-    init_log();
+) -> Result<JsValue, JsValue> {
+    init_log("debug");
 
-    let args = serde_wasm_bindgen::from_value(args).unwrap();
-    log::debug!("compile {args:?}");
+    let args = serde_wasm_bindgen::from_value(args).expect("error parsing input");
+    log::debug!("[WESL] run with args {args:?}");
 
-    let serializer = serde_wasm_bindgen::Serializer::new();
-    // .serialize_bytes_as_arrays(false)
-    // .serialize_large_number_types_as_bigints(true);
+    let serializer = serde_wasm_bindgen::Serializer::new()
+        .serialize_bytes_as_arrays(false)
+        .serialize_large_number_types_as_bigints(true);
 
-    match args {
-        Command::Compile(args) => {
-            let naga = args.naga;
-            let comp = run_compile(args)
-                .map_err(|e| wesl_err_to_diagnostic(e, None))
-                .map_err(|e| e.serialize(&serializer).unwrap())?;
+    let naga = matches!(args, Command::Compile(CompileOptions { naga: true, .. }));
 
-            let source = comp.syntax.to_string();
-            if naga {
-                #[cfg(feature = "naga")]
-                run_naga(&source).map_err(|e| e.serialize(&serializer).unwrap())?;
+    match run_impl(args) {
+        Ok(res) => match res {
+            RunResult::Compile(wgsl) => {
+                let source = wgsl.to_string();
+                if naga {
+                    #[cfg(feature = "naga")]
+                    run_naga(&source).map_err(|e| e.serialize(&serializer).unwrap())?;
+                }
+                Ok(source.into())
             }
-            Ok(source)
-        }
-        Command::Eval(args) => {
-            let comp = run_compile(args.compile)
-                .map_err(|e| wesl_err_to_diagnostic(e, None))
-                .map_err(|e| e.serialize(&serializer).unwrap())?;
-            let inst = comp
-                .eval(&args.expr)
-                .map_err(|e| wesl_err_to_diagnostic(e, Some(comp.syntax.to_string())))
-                .map_err(|e| e.serialize(&serializer).unwrap())?;
-            Ok(inst.to_string())
-        } // Command::Exec(args) => {
-          //     let inst = run_exec(args)
-          //         .map_err(wesl_err_to_diagnostic)
-          //         .map_err(|e| e.serialize(&serializer).unwrap())?;
-          //     Ok(inst.to_string())
-          // }
+            RunResult::Dump(wgsl) => Ok(wgsl.serialize(&serializer).unwrap()),
+            RunResult::Eval(inst) => Ok(inst.to_string().into()),
+            RunResult::Exec(resources) => Ok(resources.serialize(&serializer).unwrap()),
+        },
+        Err(e) => Err(e.serialize(&serializer).unwrap()),
     }
 }
