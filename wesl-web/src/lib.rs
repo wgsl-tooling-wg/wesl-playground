@@ -298,11 +298,11 @@ fn wesl_err_to_diagnostic(e: wesl::Error, source: Option<String>) -> Error {
         #[cfg(not(feature = "ansi-to-html"))]
         message: d.to_string(),
         diagnostics: {
-            if let (Some(span), Some(res)) = (&d.span, &d.resource) {
+            if let (Some(span), Some(res)) = (&d.span, &d.module_path) {
                 vec![Diagnostic {
-                    file: res.path().with_extension("").display().to_string(),
+                    file: res.components.join("/"),
                     span: span.start as u32..span.end as u32,
-                    title: d.error_message(),
+                    title: d.error.to_string(),
                 }]
             } else {
                 vec![]
@@ -402,7 +402,7 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
                         let mut res = r.clone();
                         res.data = inst
                             .to_buffer(&mut exec.ctx)
-                            .ok_or_else(|| CliError::NotStorable(exec.inst.ty()))?
+                            .ok_or_else(|| CliError::NotStorable(inst.ty()))?
                             .into_boxed_slice();
                         Ok(res)
                     })
