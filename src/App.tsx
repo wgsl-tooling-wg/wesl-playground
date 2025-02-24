@@ -33,7 +33,7 @@ const DEFAULT_OPTIONS = () => ({
   validate: true,
   naga: false,
   lazy: true,
-  entrypoints: undefined,
+  keep: undefined,
   features: {},
   // eval args
   runtime: false,
@@ -522,7 +522,7 @@ const Options: Component = () =>
     </label>
     <label classList={{ 'disabled': !options.strip }}>
       <span>strip: keep declarations</span>
-      <input type="text" disabled={!options.strip} value={strEntrypoints(options.entrypoints)} onchange={e => setOptions('entrypoints', () => parseEntrypoints(e.currentTarget.value))} />
+      <input type="text" disabled={!options.strip} value={strEntrypoints(options.keep)} onchange={e => setOptions('keep', () => parseEntrypoints(e.currentTarget.value))} />
     </label>
   </div>
 
