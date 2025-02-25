@@ -7,20 +7,20 @@ Website: [wesl.thissma.fr](https://wesl.thissma.fr)
 Spec Reference: [wesl-spec](https://github.com/wgsl-tooling-wg/wesl-spec)
 
 Supported Implementations:
-* 🟢 [wesl-rs](https://github.com/wgsl-tooling-wg/wesl-rs) (supported)
-* 🔴 [wesl-js](https://github.com/wgsl-tooling-wg/wesl-js) (planned #1)
-* 🔴 [ncthbrt/mew](https://github.com/ncthbrt/mew) (planned #3)
-* 🔴 [naga_oil](https://github.com/bevyengine/naga_oil) (planned #2)
+* 🟢 [wesl-rs][wesl-rs] (supported)
+* 🔴 [wesl-js][wesl-js] (planned #1)
+* 🔴 [mew][mew] (planned #3)
+* 🔴 [naga_oil][naga_oil] (planned #2)
 
 ## Building
-* For [wesl-rs](https://github.com/wgsl-tooling-wg/wesl-rs): (set the path or git url to crate `wesl` first in `wesl-web/Cargo.toml`, it is not yet available on crates.io).
-* Instal: `yarn install`
+* Install: `yarn install`
+* Build: `yarn build` or `yarn dev`
 * Update crate `wesl-web`:
-  * release `wasm-pack build wesl-web --release --target web --out-dir ../src/wesl-web`
-  * development `wasm-pack build wesl-web --dev --target web --out-dir ../src/wesl-web --features debug`
-* Build:
-  * release `yarn build`
-  * development `yarn dev`
+  * git clone the [`wesl-rs`][wesl-rs] repository somewhere
+  * install [`wasm-pack`][wasm-pack]
+  * compile the `wasm-pack` crate in `wesl-rs/crates/wesl-web`:
+    * release `wasm-pack build path/to/wesl/web --release --target web --out-dir path/to/wesl-playground/src/wesl-web`
+    * development `wasm-pack build path/to/wesl/web --dev --target web --out-dir path/to/wesl-playground/src/wesl-web --features debug`
 
 ## Contributing
 
@@ -42,3 +42,10 @@ any contribution intentionally submitted for inclusion in the work by you,
 as defined in the Apache-2.0 license,
 shall be dual licensed as above,
 without any additional terms or conditions.
+
+
+[wesl-rs]: https://github.com/wgsl-tooling-wg/wesl-rs
+[wesl-js]: https://github.com/wgsl-tooling-wg/wesl-js
+[mew]: https://github.com/ncthbrt/mew
+[naga_oil]: https://github.com/bevyengine/naga_oil
+[wasm-pack]: https://rustwasm.github.io/wasm-pack/
