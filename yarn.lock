@@ -479,7 +479,7 @@
 
 "@solid-primitives/deep@^0.3.0":
   version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@solid-primitives/deep/-/deep-0.3.0.tgz#7ff13d216eb64e71e5303ca33ca238fc3a534b73"
+  resolved "https://registry.npmjs.org/@solid-primitives/deep/-/deep-0.3.0.tgz"
   integrity sha512-v+B8OYCSqGpjQdj9SyJxydlyb+px4/i834ksTtPhv13OsLtibKreY5raOxelYuh/sX2MNFW8NTSsrWt+xo6D+Q==
   dependencies:
     "@solid-primitives/memo" "^1.4.0"
@@ -519,7 +519,7 @@
 
 "@solid-primitives/memo@^1.4.0":
   version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@solid-primitives/memo/-/memo-1.4.0.tgz#087091429a40b29ff0ea6ef0c4ffce7d05981f5b"
+  resolved "https://registry.npmjs.org/@solid-primitives/memo/-/memo-1.4.0.tgz"
   integrity sha512-Q0eSnGnhzbUPUNES2OOcEj6qF/9YZntoq04nmQEAIp6QhKdpAsH9mNFrVQtB1by41H/QndNui7Yd2wjI7PUpPA==
   dependencies:
     "@solid-primitives/scheduled" "^1.5.0"
@@ -879,6 +879,11 @@ merge-anything@^5.1.7:
   dependencies:
     is-what "^4.1.8"
 
+mini-parse@0.6.0-pre7:
+  version "0.6.0-pre7"
+  resolved "https://registry.npmjs.org/mini-parse/-/mini-parse-0.6.0-pre7.tgz"
+  integrity sha512-80LqgmEHugiegzlXeGw8iB+5YE1XynuFRX8pHc3clIEM6yEyj5ho3WAJbxpeEAbAMFZQIoFtsk9NvevLmATgWA==
+
 monaco-editor@^0.52.0:
   version "0.52.2"
   resolved "https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.52.2.tgz"
@@ -1237,6 +1242,13 @@ vitefu@^1.0.4:
   version "1.0.5"
   resolved "https://registry.npmjs.org/vitefu/-/vitefu-1.0.5.tgz"
   integrity sha512-h4Vflt9gxODPFNGPwp4zAMZRpZR7eslzwH2c5hn5kNZ5rhnKyRJ50U+yGCdc2IRaBs8O4haIgLNGrV5CrpMsCA==
+
+wesl@^0.6.0-pre7:
+  version "0.6.0-pre7"
+  resolved "https://registry.npmjs.org/wesl/-/wesl-0.6.0-pre7.tgz"
+  integrity sha512-bXAg9OS0+bxaFtZ5KhqzEm6Dkjq8F1hBJUkaZplT6nYaefjs8Gga2lNF+4KST8O7BZPq5SCMwXQPdbfcHoLBsw==
+  dependencies:
+    mini-parse "0.6.0-pre7"
 
 yallist@^3.0.2:
   version "3.1.1"

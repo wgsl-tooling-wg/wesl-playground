@@ -12,6 +12,27 @@ import './app'
 import { DropButton } from './DropButton'
 import GithubLogo from './assets/github-mark.svg'
 import WeslLogo from './assets/wesl-notext.svg'
+// import { link, type LinkParams } from 'wesl/src/Linker'
+// import { minimalMangle, underscoreMangle } from 'wesl/src/Mangler'
+import { link, type LinkParams } from 'wesl'
+
+// TODO: copy-pasted from wesl-js
+function underscoreMangle(
+  decl: any,
+  srcModule: any,
+): string {
+  const { modulePath } = srcModule;
+  return [...modulePath.split("::"), decl.originalName]
+    .map(v => {
+      const underscoreCount = (v.match(/_/g) ?? []).length;
+      if (underscoreCount > 0) {
+        return "_" + underscoreCount + v;
+      } else {
+        return v;
+      }
+    })
+    .join("_");
+}
 
 const DEFAULT_FILES = () => ([
   { name: 'main', source: 'import super::util::my_fn;\nfn main() -> u32 {\n    return my_fn();\n}\n' },
@@ -22,7 +43,7 @@ const DEFAULT_FILES = () => ([
 const DEFAULT_OPTIONS = () => ({
   command: 'Compile',
   // compile args
-  root: 'main.wgsl',
+  root: 'main',
   mangler: 'escape',
   sourcemap: true,
   imports: true,
@@ -206,21 +227,21 @@ function toggleAutoRun(toggle: boolean) {
   }
 }
 
-function run() {
-  if (linker() === 'wesl-rs') {
-    // const entrypoints = options.entrypoints === '' ? null : options.entrypoints.split(',').map(e => e.trim())
-    const command = {
-      ...options,
-      files: Object.fromEntries(files.map(({ name, source }) => ([ name, source ]))),
-    } as wesl.Command
+async function run() {
+  const command = {
+    ...options,
+    files: Object.fromEntries(files.map(({ name, source }) => ([ './' + name + '.wesl', source ]))),
+  } as wesl.Command
 
+  setMessage('')
+  setDiagnostics([])
+
+  if (linker() === 'wesl-rs') {
     console.log('compiling', command)
     try {
       const res = wesl.run(command)
       console.log('compilation result', {source: res})
-      setMessage('')
       setOutput(res)
-      setDiagnostics([])
     } catch (e) {
       console.error('compilation failure', e)
       const err = e as wesl.Error
@@ -229,7 +250,34 @@ function run() {
       setDiagnostics(err.diagnostics)
     }
   } else if (linker() === 'wesl-js') {
-    // TODO
+    if (command.command === 'Compile') {
+      const params: LinkParams = {
+        weslSrc: command.files,
+        rootModuleName: './' + command.root + '.wesl',
+        // debugWeslRoot?: string;
+        conditions: command.features,
+        // libs?: WgslBundle[];
+        // virtualLibs?: Record<string, VirtualLibraryFn>;
+        // config?: LinkConfig;
+        // constants?: Record<string, string | number>;
+        mangler: command.mangler === 'escape' ? underscoreMangle
+          : command.mangler === 'hash' ? underscoreMangle
+          : undefined,
+      }
+        console.log('compiling', params)
+      try {
+        const sourcemap = await link(params)
+        console.log(sourcemap)
+        setOutput(sourcemap.dest)
+      }
+      catch (e) {
+        console.error('compilation failure', e)
+        const err = e as Error
+        setOutput(err.message)
+      }
+    } else {
+      throw 'TODO'
+    }
   }
 }
 
