@@ -7,7 +7,8 @@
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "deploy": "vite build && wrangler pages deploy --project-name wesl-playground dist"
   },
   "license": "MIT",
   "devDependencies": {
@@ -19,7 +20,8 @@
     "vite-plugin-monaco-editor": "^1.1.0",
     "vite-plugin-solid": "^2.8.2",
     "vite-plugin-top-level-await": "^1.4.4",
-    "vite-plugin-wasm": "^3.3.0"
+    "vite-plugin-wasm": "^3.3.0",
+    "wrangler": "^3.114.0"
   },
   "dependencies": {
     "@solid-primitives/deep": "^0.3.0",

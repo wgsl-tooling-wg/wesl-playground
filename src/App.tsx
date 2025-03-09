@@ -34,6 +34,8 @@ function underscoreMangle(
     .join("_");
 }
 
+const SHARE_URL = 'https://wesl.thissma.fr/share'
+
 const DEFAULT_FILES = () => ([
   { name: 'main', source: 'import super::util::my_fn;\nfn main() -> u32 {\n    return my_fn();\n}\n' },
   { name: 'util', source: 'fn my_fn() -> u32 { return 42; }' },
@@ -296,7 +298,7 @@ async function share() {
     options: options,
   })
   try {
-    const response = await fetch('/share', {
+    const response = await fetch(SHARE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -324,7 +326,7 @@ async function share() {
 async function setShare(hash: String) {
   try {
     console.log(`loading hash ${hash}`)
-    const response = await fetch(`/share/${hash}`, {
+    const response = await fetch(`${SHARE_URL}/${hash}`, {
       method: 'GET',
     });
 
