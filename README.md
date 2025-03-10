@@ -2,13 +2,13 @@
 
 A web interface to test WESL (WGSL Extended) shaders in the browser.
 
-Website: [wesl.thissma.fr](https://wesl.thissma.fr)
+Website: [play.wesl-lang.dev](https://play.wesl-lang.dev) (bleeding edge is sometimes published on [wesl.thissma.fr](https://wesl.thissma.fr)
 
 Spec Reference: [wesl-spec](https://github.com/wgsl-tooling-wg/wesl-spec)
 
 Supported Implementations:
 * 🟢 [wesl-rs][wesl-rs] (supported)
-* 🔴 [wesl-js][wesl-js] (planned #1)
+* 🟡 [wesl-js][wesl-js] (in progress #1)
 * 🔴 [mew][mew] (planned #3)
 * 🔴 [naga_oil][naga_oil] (planned #2)
 
