@@ -14,12 +14,16 @@ html {
   height: 100%;
 }
 
-$dark: false;
-$base-color: if($dark, #666, #bbb);
-$text-col: if($dark, white, black);
+$base-col: light-dark(#bbb, #13171f);
+$text-col: light-dark(black, white);
+$edit-col: light-dark(white, #1e1e1e);
+$dropdown-col: light-dark(white, #262a2f);
+$border-col: light-dark(#a4a4a4, #969eaf);
+$primary-col: #01aaff;
 
 @function col($n) {
-  @return color.adjust($base-color, $lightness: if($dark, -$n, $n) * 10%);
+  @return light-dark(color.adjust(#bbb, $lightness: $n * 10%),
+    color.adjust(#13171f, $lightness: $n * 10%))
 }
 
 body {
@@ -29,6 +33,16 @@ body {
   font-family: "Roboto", Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   color: $text-col;
   background-color: col(0);
+  color-scheme: light dark;
+}
+
+a {
+  color: $primary-col;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 button {
@@ -83,9 +97,8 @@ input[type=text] {
 
   a#wesl-logo {
     img {
-      width: 4rem;
-      height: 4rem;
-      filter: drop-shadow(0px 0px 2px #000000aa);
+      height: 2rem;
+      margin-bottom: .2rem;
     }
   }
 
@@ -169,16 +182,16 @@ input[type=text] {
   white-space: nowrap;
   background-color: col(1);
   flex-shrink: 0;
-  border-bottom: 1px solid #a4a4a4;
+  border-bottom: 1px solid $border-col;
 }
 
 #left,
 #right {
-  border: 1px solid #a4a4a4;
+  border: 1px solid $border-col;
   position: relative;
   width: 100%;
   height: 100%;
-  background: white;
+  background: $edit-col;
 
   >.wrap {
     display: flex;
@@ -206,7 +219,7 @@ input[type=text] {
   padding: 1rem .5rem;
   width: 100%;
   border-bottom: 1px solid lightgrey;
-  background: #eeeeee;
+  background: $edit-col;
 
   >pre {
     margin: 0;
@@ -249,7 +262,7 @@ input[type=text] {
     svg {
       width: 100%;
       height: 100%;
-      stroke: black;
+      stroke: $text-col;
       transition: all 0.1s ease;
     }
 
@@ -286,7 +299,7 @@ input[type=text] {
   gap: .1rem;
   flex-wrap: wrap;
   min-height: 3rem;
-  background: white;
+  background: $dropdown-col;
   box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.4);
   border-radius: 3px;
 
@@ -328,6 +341,6 @@ input[type=text] {
     left: 3rem;
     border-left: 1rem solid transparent;
     border-right: 1rem solid transparent;
-    border-bottom: 1rem solid white;
+    border-bottom: 1rem solid $dropdown-col;
   }
 }

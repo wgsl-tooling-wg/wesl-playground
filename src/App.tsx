@@ -11,10 +11,15 @@ import * as wesl from './wesl-web/wesl_web'
 import './app'
 import { DropButton } from './DropButton'
 import GithubLogo from './assets/github-mark.svg'
-import WeslLogo from './assets/wesl-notext.svg'
+import WeslLogo from './assets/logo-horizontal-light.svg'
+import GithubLogoDark from './assets/github-mark-white.svg'
+import WeslLogoDark from './assets/logo-horizontal-dark.svg'
 // import { link, type LinkParams } from 'wesl/src/Linker'
 // import { minimalMangle, underscoreMangle } from 'wesl/src/Mangler'
 import { link, type LinkParams } from 'wesl'
+
+const [dark, setDark] = createSignal(window.matchMedia('(prefers-color-scheme: dark)').matches)
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => setDark(e.matches))
 
 // TODO: copy-pasted from wesl-js
 function underscoreMangle(
@@ -382,7 +387,7 @@ function setupMonacoInput(elt: HTMLElement) {
     value: source(),
     language: 'wgsl',
     automaticLayout: true,
-    theme: 'vs',
+    theme: dark() ? 'vs-dark' : 'vs',
   });
 
   // keeping track of the editor value() avoids calling editor.setValue() when source()
@@ -429,7 +434,7 @@ function setupMonacoOutput(elt: HTMLElement) {
     value: output(),
     language: 'wgsl',
     automaticLayout: true,
-    theme: 'vs',
+    theme: dark() ? 'vs-dark' : 'vs',
     readOnly: true,
     renderValidationDecorations: 'on',
   });
@@ -579,8 +584,8 @@ const Options: Component = () =>
 const App: Component = () =>
   <div id="app">
     <div id="header">
-      <a id='wesl-logo' href='https://github.com/wgsl-tooling-wg/wesl-spec'><img src={WeslLogo} alt='WESL-Spec GitHub repository' /></a>
-      <h2>WESL Playground</h2>
+      <a id='wesl-logo' href='https://github.com/wgsl-tooling-wg/wesl-spec'><img src={dark() ? WeslLogoDark : WeslLogo} alt='WESL-Spec GitHub repository' /></a>
+      <h2>Playground</h2>
       <button id="btn-run" onclick={run}>compile</button>
       <button id="btn-reset" onclick={reset}>reset</button>
       <button id="btn-share" onclick={share}>share</button>
@@ -597,7 +602,7 @@ const App: Component = () =>
         <span>wesl-js</span>
         <input type="radio" name="linker" value="wesl-js" checked={linker() === 'wesl-js'} onchange={e => setLinker(e.currentTarget.value)} />
       </label>
-      <a id='github-logo'  href='https://github.com/wgsl-tooling-wg/wesl-playground'><img src={GithubLogo} alt='WESL-Sandbox GitHub repository' /></a>
+      <a id='github-logo'  href='https://github.com/wgsl-tooling-wg/wesl-playground'><img src={dark() ? GithubLogoDark : GithubLogo} alt='WESL-Sandbox GitHub repository' /></a>
     </div>
     <div id="left">
       <div class="wrap">
