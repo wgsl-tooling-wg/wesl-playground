@@ -14,25 +14,27 @@ html {
   height: 100%;
 }
 
-$base-col: light-dark(#bbb, #13171f);
 $text-col: light-dark(black, white);
-$edit-col: light-dark(white, #1e1e1e);
-$dropdown-col: light-dark(white, #262a2f);
+$bg-col: light-dark(white, #13171f);
+$edit-col: light-dark(#efefef, #262a2f);
+$dropdown-col: $edit-col;
 $border-col: light-dark(#a4a4a4, #969eaf);
 $primary-col: #01aaff;
 
 @function col($n) {
-  @return light-dark(color.adjust(#bbb, $lightness: $n * 10%),
-    color.adjust(#13171f, $lightness: $n * 10%))
+  @return light-dark(color.adjust(white, $lightness: -$n * 10%),
+    color.adjust(#262a2f, $lightness: $n * 10%))
 }
 
 body {
   height: 100%;
+  display: flex;
+  justify-content: center;
   margin: 0;
   padding: 1rem;
   font-family: "Roboto", Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   color: $text-col;
-  background-color: col(0);
+  background-color: $bg-col;
   color-scheme: light dark;
 }
 
@@ -64,7 +66,7 @@ input[type=text] {
 }
 
 #app {
-  width: 100%;
+  width: min(100%, 140rem);
   height: 100%;
 
   display: grid;
@@ -90,8 +92,8 @@ input[type=text] {
     margin-left: auto;
 
     img {
-      width: 3rem;
-      height: 3rem;
+      width: 2.5rem;
+      height: 2.5rem;
     }
   }
 
@@ -187,11 +189,12 @@ input[type=text] {
 
 #left,
 #right {
-  border: 1px solid $border-col;
   position: relative;
   width: 100%;
   height: 100%;
   background: $edit-col;
+  border-radius: 4px;
+  overflow: hidden;
 
   >.wrap {
     display: flex;
@@ -201,15 +204,15 @@ input[type=text] {
   }
 }
 
-#input,
-#right {
+#right,
+#left {
   position: relative;
 
   &::after {
     content: "";
     position: absolute;
     inset: 0;
-    box-shadow: inset 0 0 4px 0px #0000004f;
+    box-shadow: inset 0 0 6px 0px #0000001f;
     z-index: 1;
     pointer-events: none;
   }
@@ -301,13 +304,14 @@ input[type=text] {
   min-height: 3rem;
   background: $dropdown-col;
   box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.4);
+  border: 1px solid $border-col;
   border-radius: 3px;
 
   >span {
     padding: 0.5rem 0.5rem;
     font-weight: bold;
     font-size: 1.2rem;
-    border-bottom: 1px solid grey;
+    border-bottom: 1px solid $border-col;
   }
 
   >label {
@@ -341,6 +345,7 @@ input[type=text] {
     left: 3rem;
     border-left: 1rem solid transparent;
     border-right: 1rem solid transparent;
-    border-bottom: 1rem solid $dropdown-col;
+    border-bottom: 1rem solid $border-col;
+    z-index: -1;
   }
 }

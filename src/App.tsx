@@ -1,5 +1,3 @@
-// import * as monaco from 'monaco-editor';
-// more barebones version below:
 import monaco, { editorWorker } from './monaco'
 
 import { For, type Component, createSignal, createEffect, onMount, onCleanup, on, createReaction } from 'solid-js'
@@ -377,6 +375,15 @@ async function setShare(hash: String) {
   }
 }
 
+monaco.editor.defineTheme('theme', {
+    base: dark() ? 'vs-dark' : 'vs',
+    inherit: true,
+    rules: [],
+    colors: {
+        'editor.background': dark() ? '#262a2f' : '#efefef',
+    },
+});
+
 function setupMonacoInput(elt: HTMLElement) {
   self.MonacoEnvironment = {
     getWorker: function (_workerId, _label) {
@@ -384,10 +391,11 @@ function setupMonacoInput(elt: HTMLElement) {
     }
   };
   const editor = monaco.editor.create(elt, {
+    theme: 'theme',
     value: source(),
     language: 'wgsl',
+    mouseWheelZoom: true,
     automaticLayout: true,
-    theme: dark() ? 'vs-dark' : 'vs',
   });
 
   // keeping track of the editor value() avoids calling editor.setValue() when source()
@@ -432,9 +440,10 @@ function setupMonacoOutput(elt: HTMLElement) {
   };
   const editor = monaco.editor.create(elt, {
     value: output(),
+    theme: 'theme',
     language: 'wgsl',
+    mouseWheelZoom: true,
     automaticLayout: true,
-    theme: dark() ? 'vs-dark' : 'vs',
     readOnly: true,
     renderValidationDecorations: 'on',
   });
