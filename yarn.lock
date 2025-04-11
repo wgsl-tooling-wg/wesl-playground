@@ -1327,10 +1327,10 @@ mime@^3.0.0:
   resolved "https://registry.yarnpkg.com/mime/-/mime-3.0.0.tgz#b374550dca3a0c18443b0c950a6a58f1931cf7a7"
   integrity sha512-jSCU7/VB1loIWBZe14aEYHU/+1UMEHoaO7qxCOVJOw9GgH72VAWppxNcjU+x9a2k3GSIBXNKxXQFqRvvZ7vr3A==
 
-mini-parse@0.6.0-pre7:
-  version "0.6.0-pre7"
-  resolved "https://registry.npmjs.org/mini-parse/-/mini-parse-0.6.0-pre7.tgz"
-  integrity sha512-80LqgmEHugiegzlXeGw8iB+5YE1XynuFRX8pHc3clIEM6yEyj5ho3WAJbxpeEAbAMFZQIoFtsk9NvevLmATgWA==
+mini-parse@0.6.0-rc4:
+  version "0.6.0-rc4"
+  resolved "https://registry.yarnpkg.com/mini-parse/-/mini-parse-0.6.0-rc4.tgz#ec3adbda6240663194b706793a5ff0063572729e"
+  integrity sha512-p8+G8d+4Z+4ud0/Nyl3IO5T6tMTJ+UKULSyponsiy6VxbF0o4Maag8e8AaJj4VMix5/8ZBhxZ/AZlt9YcGBJXg==
 
 miniflare@3.20250224.0:
   version "3.20250224.0"
@@ -1843,12 +1843,12 @@ vitefu@^1.0.4:
   resolved "https://registry.npmjs.org/vitefu/-/vitefu-1.0.5.tgz"
   integrity sha512-h4Vflt9gxODPFNGPwp4zAMZRpZR7eslzwH2c5hn5kNZ5rhnKyRJ50U+yGCdc2IRaBs8O4haIgLNGrV5CrpMsCA==
 
-wesl@^0.6.0-pre7:
-  version "0.6.0-pre7"
-  resolved "https://registry.npmjs.org/wesl/-/wesl-0.6.0-pre7.tgz"
-  integrity sha512-bXAg9OS0+bxaFtZ5KhqzEm6Dkjq8F1hBJUkaZplT6nYaefjs8Gga2lNF+4KST8O7BZPq5SCMwXQPdbfcHoLBsw==
+wesl@^0.6.0-rc4:
+  version "0.6.0-rc4"
+  resolved "https://registry.yarnpkg.com/wesl/-/wesl-0.6.0-rc4.tgz#10bc84cdc63be780dc81180f96f5920ad636fb3e"
+  integrity sha512-2NUxMfHdWilOSQWCcQBZnxt4csc5HGDNoefD/1RLpLTyXcwM+10Z4gki9+DvKX1T546eG7pQ8Ak6NV/5zSvGGQ==
   dependencies:
-    mini-parse "0.6.0-pre7"
+    mini-parse "0.6.0-rc4"
 
 workerd@1.20250224.0:
   version "1.20250224.0"
