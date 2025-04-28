@@ -82,17 +82,17 @@ const DEFAULT_OPTIONS = () => ({
 })
 
 const DEFAULT_MESSAGE =
-  `Visit the <a href="https://github.com/wgsl-tooling-wg/wesl-spec">WESL reference</a> to learn about WESL.<br/>
+  `Visit <a href="https://wesl-lang.dev">wesl-lang.dev</a> to learn about WESL.<br/>
 <br/>
 Options:
 <ul>
-  <li>imports — enable/disable the <a href="https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/Imports.md">import extension</a></li>
-  <li>conditionals — enable/disable the <a href="https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/ConditionalTranslation.md">conditional translation extension</a>
+  <li>imports — enable/disable the <a href="https://wesl-lang.dev/spec/Imports">import extension</a></li>
+  <li>conditionals — enable/disable the <a href="https://wesl-lang.dev/spec/ConditionalTranslation">conditional translation extension</a>
     <ul>
       <li>features — comma-separated list of features to enable/disable. Syntax: feat1=true,feat2=false,...</li>
     </ul>
   </li>
-  <li>mangler — choose the <a href="https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/NameMangling.md">name mangling scheme</a>
+  <li>mangler — choose the <a href="https://wesl-lang.dev/spec/NameMangling">name mangling scheme</a>
     <ul>
       <li>None — no mangling is performed. Name collisions can happen</li>
       <li>Hash — mangling based on a hash of the fully-qualified name</li>
@@ -714,10 +714,10 @@ const Options: Component = () => (
 const App: Component = () => (
   <div id="app">
     <div id="header">
-      <a id="wesl-logo" href="https://github.com/wgsl-tooling-wg/wesl-spec">
+      <a id="wesl-logo" href="https://wesl-lang.dev">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset={WeslLogoDark} />
-          <img src={WeslLogo} alt="WESL-Spec GitHub repository" />
+          <img src={WeslLogo} alt="WESL website" />
         </picture>
       </a>
       <h2>Playground</h2>
