@@ -1,8 +1,17 @@
 import monaco, { editorWorker } from './monaco'
 
-import { For, type Component, createSignal, createEffect, onMount, onCleanup, on, createReaction } from 'solid-js'
-import { createStore, type SetStoreFunction, type Store } from "solid-js/store"
-import { trackStore } from "@solid-primitives/deep";
+import {
+  For,
+  type Component,
+  createSignal,
+  createEffect,
+  onMount,
+  onCleanup,
+  on,
+  createReaction,
+} from 'solid-js'
+import { createStore, type SetStoreFunction, type Store } from 'solid-js/store'
+import { trackStore } from '@solid-primitives/deep'
 
 import './style.scss'
 import * as wesl from './wesl-web/wesl_web'
@@ -12,37 +21,41 @@ import GithubLogo from './assets/github-mark.svg'
 import WeslLogo from './assets/logo-horizontal-light.svg'
 import GithubLogoDark from './assets/github-mark-white.svg'
 import WeslLogoDark from './assets/logo-horizontal-dark.svg'
-// import { link, type LinkParams } from 'wesl/src/Linker'
-// import { minimalMangle, underscoreMangle } from 'wesl/src/Mangler'
-import { link, type LinkParams } from 'wesl'
+import * as WeslJs from 'wesl'
 
-const [dark, setDark] = createSignal(window.matchMedia('(prefers-color-scheme: dark)').matches)
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => setDark(e.matches))
+const [dark, setDark] = createSignal(
+  window.matchMedia('(prefers-color-scheme: dark)').matches,
+)
+window
+  .matchMedia('(prefers-color-scheme: dark)')
+  .addEventListener('change', (e) => setDark(e.matches))
 
 // TODO: copy-pasted from wesl-js
-function underscoreMangle(
-  decl: any,
-  srcModule: any,
-): string {
-  const { modulePath } = srcModule;
-  return [...modulePath.split("::"), decl.originalName]
-    .map(v => {
-      const underscoreCount = (v.match(/_/g) ?? []).length;
+function underscoreMangle(decl: any, srcModule: any): string {
+  const { modulePath } = srcModule
+  return [...modulePath.split('::'), decl.originalName]
+    .map((v) => {
+      const underscoreCount = (v.match(/_/g) ?? []).length
       if (underscoreCount > 0) {
-        return "_" + underscoreCount + v;
+        return '_' + underscoreCount + v
       } else {
-        return v;
+        return v
       }
     })
-    .join("_");
+    .join('_')
 }
 
+// TODO: move that to wesl-lang.dev
 const SHARE_URL = 'https://wesl.thissma.fr/share'
 
-const DEFAULT_FILES = () => ([
-  { name: 'main', source: 'import super::util::my_fn;\nfn main() -> u32 {\n    return my_fn();\n}\n' },
+const DEFAULT_FILES = () => [
+  {
+    name: 'main',
+    source:
+      'import super::util::my_fn;\nfn main() -> u32 {\n    return my_fn();\n}\n',
+  },
   { name: 'util', source: 'fn my_fn() -> u32 { return 42; }' },
-])
+]
 
 // /!\ remember to bump the storage version when you modify this struct!
 const DEFAULT_OPTIONS = () => ({
@@ -69,7 +82,7 @@ const DEFAULT_OPTIONS = () => ({
 })
 
 const DEFAULT_MESSAGE =
-`Visit the <a href="https://github.com/wgsl-tooling-wg/wesl-spec">WESL reference</a> to learn about WESL.<br/>
+  `Visit the <a href="https://github.com/wgsl-tooling-wg/wesl-spec">WESL reference</a> to learn about WESL.<br/>
 <br/>
 Options:
 <ul>
@@ -97,14 +110,13 @@ Options:
 </ul>
 `.replaceAll(/\s*\n\s*/g, '')
 
-const URL_PARAMS = new URLSearchParams(window.location.search);
+const URL_PARAMS = new URLSearchParams(window.location.search)
 
 function getHashFromUrl() {
   const match = window.location.pathname.match(/^\/s\/([a-f0-9]+)$/)
   if (match) {
     return match[1]
-  }
-  else {
+  } else {
     return null
   }
 }
@@ -131,14 +143,17 @@ onMount(() => {
   if (hash) {
     setShare(hash)
   }
-  window.addEventListener('popstate', onPopState);
-});
-
-onCleanup(() => {
-  window.removeEventListener('popstate', onPopState);
+  window.addEventListener('popstate', onPopState)
 })
 
-function createLocalStore<T extends object>(name: string, init: T): [Store<T>, SetStoreFunction<T>] {
+onCleanup(() => {
+  window.removeEventListener('popstate', onPopState)
+})
+
+function createLocalStore<T extends object>(
+  name: string,
+  init: T,
+): [Store<T>, SetStoreFunction<T>] {
   const VERSION = '2'
   const version = localStorage.getItem('version')
 
@@ -150,7 +165,7 @@ function createLocalStore<T extends object>(name: string, init: T): [Store<T>, S
       } else {
         localStorage.removeItem(name)
       }
-    } catch (_) { }
+    } catch (_) {}
   }
 
   if (version !== VERSION) {
@@ -158,7 +173,7 @@ function createLocalStore<T extends object>(name: string, init: T): [Store<T>, S
     localStorage.setItem('version', VERSION)
   }
 
-  const [state, setState] = createStore<T>(init);
+  const [state, setState] = createStore<T>(init)
 
   createEffect(() => {
     // changing any setting invalidates the playground url
@@ -166,11 +181,11 @@ function createLocalStore<T extends object>(name: string, init: T): [Store<T>, S
     localStorage.setItem(name, JSON.stringify(state))
   })
 
-  return [state, setState];
+  return [state, setState]
 }
 
 function removeIndex<T>(array: readonly T[], index: number): T[] {
-  return [...array.slice(0, index), ...array.slice(index + 1)];
+  return [...array.slice(0, index), ...array.slice(index + 1)]
 }
 
 const newFile = () => {
@@ -178,7 +193,7 @@ const newFile = () => {
 }
 
 const delFile = (i: number) => {
-  setFiles(files => removeIndex(files, i))
+  setFiles((files) => removeIndex(files, i))
 }
 
 const renameFile = (i: number, name: string) => {
@@ -188,8 +203,7 @@ const renameFile = (i: number, name: string) => {
 const initialLinker = URL_PARAMS.get('linker') ?? 'wesl-rs'
 const initialOptions = DEFAULT_OPTIONS()
 for (const key in DEFAULT_OPTIONS)
-  if (URL_PARAMS.has(key))
-    initialOptions[key] = URL_PARAMS.get(key)
+  if (URL_PARAMS.has(key)) initialOptions[key] = URL_PARAMS.get(key)
 
 const [files, setFiles] = createLocalStore('files', DEFAULT_FILES())
 const [options, setOptions] = createLocalStore('options', initialOptions)
@@ -199,13 +213,16 @@ const [diagnostics, setDiagnostics] = createSignal<wesl.Diagnostic[]>([])
 const [output, setOutput] = createSignal('')
 const [message, setMessage] = createSignal(DEFAULT_MESSAGE)
 
-const setSource = (source: string) => setFiles(tab(), { name: files[tab()].name, source })
+const setSource = (source: string) =>
+  setFiles(tab(), { name: files[tab()].name, source })
 const source = () => files[tab()]?.source ?? ''
 
 // this effect ensures that there is always at least 1 tab open.
 createEffect(() => {
   if (files.length == 0) {
-    setFiles([{ name: 'main.wgsl', source: 'fn main() -> u32 {\n    return 0u;\n}\n' }])
+    setFiles([
+      { name: 'main.wgsl', source: 'fn main() -> u32 {\n    return 0u;\n}\n' },
+    ])
   }
 })
 
@@ -219,7 +236,10 @@ function toggleAutoRun(toggle: boolean) {
   if (toggle) {
     function loop() {
       if (runTimeout) {
-        track(() => { trackStore(options); source() })
+        track(() => {
+          trackStore(options)
+          source()
+        })
         run()
       }
     }
@@ -227,7 +247,10 @@ function toggleAutoRun(toggle: boolean) {
       runTimeout = setTimeout(loop, 500)
     })
 
-    track(() => {  trackStore(options); source() })
+    track(() => {
+      trackStore(options)
+      source()
+    })
     run()
   }
 }
@@ -235,7 +258,9 @@ function toggleAutoRun(toggle: boolean) {
 async function run() {
   const command = {
     ...options,
-    files: Object.fromEntries(files.map(({ name, source }) => ([ './' + name + '.wesl', source ]))),
+    files: Object.fromEntries(
+      files.map(({ name, source }) => ['./' + name + '.wesl', source]),
+    ),
   } as wesl.Command
 
   setMessage('')
@@ -245,7 +270,7 @@ async function run() {
     console.log('compiling', command)
     try {
       const res = wesl.run(command)
-      console.log('compilation result', {source: res})
+      console.log('compilation result', { source: res })
       setOutput(res)
     } catch (e) {
       console.error('compilation failure', e)
@@ -256,7 +281,7 @@ async function run() {
     }
   } else if (linker() === 'wesl-js') {
     if (command.command === 'Compile') {
-      const params: LinkParams = {
+      const params: WeslJs.LinkParams = {
         weslSrc: command.files,
         rootModuleName: './' + command.root + '.wesl',
         // debugWeslRoot?: string;
@@ -265,17 +290,19 @@ async function run() {
         // virtualLibs?: Record<string, VirtualLibraryFn>;
         // config?: LinkConfig;
         // constants?: Record<string, string | number>;
-        mangler: command.mangler === 'escape' ? underscoreMangle
-          : command.mangler === 'hash' ? underscoreMangle
-          : undefined,
+        mangler:
+          command.mangler === 'escape'
+            ? underscoreMangle
+            : command.mangler === 'hash'
+              ? underscoreMangle
+              : undefined,
       }
-        console.log('compiling', params)
+      console.log('compiling', params)
       try {
-        const sourcemap = await link(params)
+        const sourcemap = await WeslJs.link(params)
         console.log(sourcemap)
         setOutput(sourcemap.dest)
-      }
-      catch (e) {
+      } catch (e) {
         console.error('compilation failure', e)
         const err = e as Error
         setOutput(err.message)
@@ -307,7 +334,7 @@ async function share() {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({ data }),
-    });
+    })
 
     if (!response.ok) {
       alert(`failed to share sandbox: ${response.status}`)
@@ -316,12 +343,13 @@ async function share() {
 
     const hash = await response.text()
     const url = new URL(`${window.location.origin}/s/${hash}`)
-    window.history.pushState(hash, "", url)
-    setMessage(`copy the URL below share this playground.\n<a href="${url}">${url}</a>`)
+    window.history.pushState(hash, '', url)
+    setMessage(
+      `copy the URL below share this playground.\n<a href="${url}">${url}</a>`,
+    )
     setOutput('')
     hasHash = true
-  }
-  catch (error) {
+  } catch (error) {
     console.error(error)
   }
 }
@@ -331,7 +359,7 @@ async function setShare(hash: String) {
     console.log(`loading hash ${hash}`)
     const response = await fetch(`${SHARE_URL}/${hash}`, {
       method: 'GET',
-    });
+    })
 
     if (!response.ok) {
       alert(`failed to load shared sandbox: ${response.status}`)
@@ -355,48 +383,51 @@ async function setShare(hash: String) {
       setLinker(data.linker)
     }
     if (typeof data.options === 'object') {
-      const curOptions = linker() === 'wesl-rs' ? {...options} : {}
+      const curOptions = linker() === 'wesl-rs' ? { ...options } : {}
       for (const key in data.options) {
-        if (key in curOptions && typeof data.options[key] === typeof curOptions[key]) {
+        if (
+          key in curOptions &&
+          typeof data.options[key] === typeof curOptions[key]
+        ) {
           curOptions[key] = data.options[key]
         }
       }
-      if (linker() === 'wesl-rs')
-        setOptions(curOptions)
+      if (linker() === 'wesl-rs') setOptions(curOptions)
     }
 
     const url = new URL(`${window.location.origin}/s/${hash}`)
     setMessage(`loaded shared playground.\n<a href="${url}">${url}</a>`)
     setOutput('')
     hasHash = true
-  }
-  catch (error) {
+  } catch (error) {
     console.error(error)
   }
 }
 
-monaco.editor.defineTheme('theme', {
+createEffect(() => {
+  monaco.editor.defineTheme('theme', {
     base: dark() ? 'vs-dark' : 'vs',
     inherit: true,
     rules: [],
     colors: {
-        'editor.background': dark() ? '#262a2f' : '#efefef',
+      'editor.background': dark() ? '#262a2f' : '#efefef',
     },
-});
+  })
+})
 
 function setupMonacoInput(elt: HTMLElement) {
   self.MonacoEnvironment = {
     getWorker: function (_workerId, _label) {
-        return new editorWorker();
-    }
-  };
+      return new editorWorker()
+    },
+  }
   const editor = monaco.editor.create(elt, {
     theme: 'theme',
     value: source(),
     language: 'wgsl',
     mouseWheelZoom: true,
     automaticLayout: true,
-  });
+  })
 
   // keeping track of the editor value() avoids calling editor.setValue() when source()
   // changed as a result of editing.
@@ -416,18 +447,20 @@ function setupMonacoInput(elt: HTMLElement) {
 
   createEffect(() => {
     const model = editor.getModel()
-    const markers = diagnostics().filter(d => d.file === files[tab()].name).map(d => {
-      const p1 = model.getPositionAt(d.span.start)
-      const p2 = model.getPositionAt(d.span.end)
-      return {
-        startLineNumber: p1.lineNumber,
-        startColumn: p1.column,
-        endLineNumber: p2.lineNumber,
-        endColumn: p2.column,
-        message: d.title,
-        severity: monaco.MarkerSeverity.Error
-      }
-    })
+    const markers = diagnostics()
+      .filter((d) => d.file === files[tab()].name)
+      .map((d) => {
+        const p1 = model.getPositionAt(d.span.start)
+        const p2 = model.getPositionAt(d.span.end)
+        return {
+          startLineNumber: p1.lineNumber,
+          startColumn: p1.column,
+          endLineNumber: p2.lineNumber,
+          endColumn: p2.column,
+          message: d.title,
+          severity: monaco.MarkerSeverity.Error,
+        }
+      })
     monaco.editor.setModelMarkers(editor.getModel(), 'wesl', markers)
   })
 }
@@ -435,9 +468,9 @@ function setupMonacoInput(elt: HTMLElement) {
 function setupMonacoOutput(elt: HTMLElement) {
   self.MonacoEnvironment = {
     getWorker: function (_workerId, _label) {
-        return new editorWorker();
-    }
-  };
+      return new editorWorker()
+    },
+  }
   const editor = monaco.editor.create(elt, {
     value: output(),
     theme: 'theme',
@@ -446,7 +479,7 @@ function setupMonacoOutput(elt: HTMLElement) {
     automaticLayout: true,
     readOnly: true,
     renderValidationDecorations: 'on',
-  });
+  })
 
   createEffect(() => {
     editor.setValue(output())
@@ -454,27 +487,29 @@ function setupMonacoOutput(elt: HTMLElement) {
 
   createEffect(() => {
     const model = editor.getModel()
-    const markers = diagnostics().filter(d => d.file === 'output').map(d => {
-      const p1 = model.getPositionAt(d.span.start)
-      const p2 = model.getPositionAt(d.span.end)
-      return {
-        startLineNumber: p1.lineNumber,
-        startColumn: p1.column,
-        endLineNumber: p2.lineNumber,
-        endColumn: p2.column,
-        message: d.title,
-        severity: monaco.MarkerSeverity.Error
-      }
-    })
+    const markers = diagnostics()
+      .filter((d) => d.file === 'output')
+      .map((d) => {
+        const p1 = model.getPositionAt(d.span.start)
+        const p2 = model.getPositionAt(d.span.end)
+        return {
+          startLineNumber: p1.lineNumber,
+          startColumn: p1.column,
+          endLineNumber: p2.lineNumber,
+          endColumn: p2.column,
+          message: d.title,
+          severity: monaco.MarkerSeverity.Error,
+        }
+      })
     monaco.editor.setModelMarkers(editor.getModel(), 'wesl', markers)
   })
 }
 
 interface TabBtnProps {
-  name: string,
-  selected: boolean,
-  onselect: () => void,
-  onrename: (name: string) => void,
+  name: string
+  selected: boolean
+  onselect: () => void
+  onrename: (name: string) => void
   ondelete: () => void
 }
 
@@ -491,153 +526,297 @@ function TabBtn(props: TabBtnProps) {
   }
 
   const onKeyDown = (e: KeyboardEvent & { currentTarget: HTMLElement }) => {
-    if (["Enter", "Escape", "Tab"].includes(e.key)) {
+    if (['Enter', 'Escape', 'Tab'].includes(e.key)) {
       e.preventDefault()
       endEditable(e)
     }
   }
 
   return (
-    <div class="tab-btn text" classList={{selected: props.selected}} role="button" tabindex="0" onclick={props.onselect}>
-      <div ondblclick={setEditable} onblur={endEditable} onkeydown={onKeyDown} contenteditable={false}>{props.name}</div>
-      <button onclick={e => { e.stopPropagation(); props.ondelete() }}>
-        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <div
+      class="tab-btn text"
+      classList={{ selected: props.selected }}
+      role="button"
+      tabindex="0"
+      onclick={props.onselect}
+    >
+      <div
+        ondblclick={setEditable}
+        onblur={endEditable}
+        onkeydown={onKeyDown}
+        contenteditable={false}
+      >
+        {props.name}
+      </div>
+      <button
+        onclick={(e) => {
+          e.stopPropagation()
+          props.ondelete()
+        }}
+      >
+        <svg viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          ></path>
+        </svg>
       </button>
     </div>
   )
 }
 
 function strFeatures(features: { [name: string]: boolean }): string {
-  return Object.entries(features).map(([name, enabled]) => `${name}=${enabled}`).join(', ')
+  return Object.entries(features)
+    .map(([name, enabled]) => `${name}=${enabled}`)
+    .join(', ')
 }
 function parseFeatures(str: string): { [name: string]: boolean } {
   return Object.fromEntries(
     str
       .split(',')
-      .map(f => f.split('=', 2).map(x => x.trim()))
-      .filter(f => f[0] !== '')
-      .map(f => f.length === 1 ? [f[0], true] : [f[0], !!f[1] && !['false', '0'].includes(f[1])])
-    )
+      .map((f) => f.split('=', 2).map((x) => x.trim()))
+      .filter((f) => f[0] !== '')
+      .map((f) =>
+        f.length === 1
+          ? [f[0], true]
+          : [f[0], !!f[1] && !['false', '0'].includes(f[1])],
+      ),
+  )
 }
 
 function strEntrypoints(entrypoints: string[] | undefined): string {
   return (entrypoints ?? []).join(', ')
 }
 function parseEntrypoints(str: string): string[] | undefined {
-  let res = str.split(',').map(s => s.trim()).filter(s => s !== '')
+  let res = str
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
   if (res.length) {
     return res
   }
 }
 
-const Options: Component = () =>
+const Options: Component = () => (
   <div id="options">
     <span>Features</span>
     <label>
-      <input type="checkbox" checked={options.imports} onchange={e => setOptions('imports', e.currentTarget.checked)} />
+      <input
+        type="checkbox"
+        checked={options.imports}
+        onchange={(e) => setOptions('imports', e.currentTarget.checked)}
+      />
       <span>imports</span>
     </label>
     <label>
-      <input type="checkbox" checked={options.condcomp} onchange={e => setOptions('condcomp', e.currentTarget.checked)} />
+      <input
+        type="checkbox"
+        checked={options.condcomp}
+        onchange={(e) => setOptions('condcomp', e.currentTarget.checked)}
+      />
       <span>conditional translation</span>
     </label>
     <label>
-      <input type="checkbox" checked={options.generics} onchange={e => setOptions('generics', e.currentTarget.checked)} />
+      <input
+        type="checkbox"
+        checked={options.generics}
+        onchange={(e) => setOptions('generics', e.currentTarget.checked)}
+      />
       <span>generics</span>
     </label>
     <label>
-      <input type="checkbox" checked={options.strip} onchange={e => setOptions('strip', e.currentTarget.checked)} />
+      <input
+        type="checkbox"
+        checked={options.strip}
+        onchange={(e) => setOptions('strip', e.currentTarget.checked)}
+      />
       <span>strip dead code</span>
     </label>
     <label>
-      <input type="checkbox" checked={options.lower} onchange={e => setOptions('lower', e.currentTarget.checked)} />
+      <input
+        type="checkbox"
+        checked={options.lower}
+        onchange={(e) => setOptions('lower', e.currentTarget.checked)}
+      />
       <span>polyfills</span>
     </label>
     <label>
-      <input type="checkbox" checked={options.validate} onchange={e => setOptions('validate', e.currentTarget.checked)} />
+      <input
+        type="checkbox"
+        checked={options.validate}
+        onchange={(e) => setOptions('validate', e.currentTarget.checked)}
+      />
       <span>validation</span>
     </label>
     <label>
-      <input type="checkbox" checked={options.naga} onchange={e => setOptions('naga', e.currentTarget.checked)} />
+      <input
+        type="checkbox"
+        checked={options.naga}
+        onchange={(e) => setOptions('naga', e.currentTarget.checked)}
+      />
       <span>naga validation</span>
     </label>
     <span>Configuration</span>
     <label>
       <span>root file</span>
-      <select value={options.root} onchange={e => setOptions('root', e.currentTarget.value)}>
-        <For each={files}>{file => 
-          <option value={file.name}>{file.name}</option>
-        }</For>
+      <select
+        value={options.root}
+        onchange={(e) => setOptions('root', e.currentTarget.value)}
+      >
+        <For each={files}>
+          {(file) => <option value={file.name}>{file.name}</option>}
+        </For>
       </select>
     </label>
     <label>
       <span>mangler</span>
-      <select value={options.mangler} onchange={e => setOptions('mangler', e.currentTarget.value as wesl.ManglerKind)}>
+      <select
+        value={options.mangler}
+        onchange={(e) =>
+          setOptions('mangler', e.currentTarget.value as wesl.ManglerKind)
+        }
+      >
         <option value="none">None</option>
         <option value="hash">Hash</option>
         <option value="escape">Escape</option>
       </select>
     </label>
-    <label classList={{ 'disabled': !options.condcomp }}>
+    <label classList={{ disabled: !options.condcomp }}>
       <span>cond. comp. features</span>
-      <input type="text" disabled={!options.condcomp} value={strFeatures(options.features)} onchange={e => {
-        setOptions(({ features, ...opts }) => ({ ...opts, features: parseFeatures(e.currentTarget.value) }))
-      }} />
+      <input
+        type="text"
+        disabled={!options.condcomp}
+        value={strFeatures(options.features)}
+        onchange={(e) => {
+          setOptions(({ features, ...opts }) => ({
+            ...opts,
+            features: parseFeatures(e.currentTarget.value),
+          }))
+        }}
+      />
     </label>
-    <label classList={{ 'disabled': !options.strip }}>
+    <label classList={{ disabled: !options.strip }}>
       <span>strip: keep declarations</span>
-      <input type="text" disabled={!options.strip} value={strEntrypoints(options.keep)} onchange={e => setOptions('keep', () => parseEntrypoints(e.currentTarget.value))} />
+      <input
+        type="text"
+        disabled={!options.strip}
+        value={strEntrypoints(options.keep)}
+        onchange={(e) =>
+          setOptions('keep', () => parseEntrypoints(e.currentTarget.value))
+        }
+      />
     </label>
   </div>
+)
 
-const App: Component = () =>
+const App: Component = () => (
   <div id="app">
     <div id="header">
-      <a id='wesl-logo' href='https://github.com/wgsl-tooling-wg/wesl-spec'><img src={dark() ? WeslLogoDark : WeslLogo} alt='WESL-Spec GitHub repository' /></a>
+      <a id="wesl-logo" href="https://github.com/wgsl-tooling-wg/wesl-spec">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset={WeslLogoDark} />
+          <img src={WeslLogo} alt="WESL-Spec GitHub repository" />
+        </picture>
+      </a>
       <h2>Playground</h2>
-      <button id="btn-run" onclick={run}>compile</button>
-      <button id="btn-reset" onclick={reset}>reset</button>
-      <button id="btn-share" onclick={share}>share</button>
-      <DropButton label="options"><Options/></DropButton>
+      <button id="btn-run" onclick={run}>
+        compile
+      </button>
+      <button id="btn-reset" onclick={reset}>
+        reset
+      </button>
+      <button id="btn-share" onclick={share}>
+        share
+      </button>
+      <DropButton label="options">
+        <Options />
+      </DropButton>
       <label>
         <span>auto recompile</span>
-        <input type="checkbox" name="auto-recompile" onChange={e => toggleAutoRun(e.currentTarget.checked)} />
+        <input
+          type="checkbox"
+          name="auto-recompile"
+          onChange={(e) => toggleAutoRun(e.currentTarget.checked)}
+        />
       </label>
       <label>
         <span>wesl-rs</span>
-        <input type="radio" name="linker" value="wesl-rs" checked={linker() === 'wesl-rs'} onchange={e => setLinker(e.currentTarget.value)} />
+        <input
+          type="radio"
+          name="linker"
+          value="wesl-rs"
+          checked={linker() === 'wesl-rs'}
+          onchange={(e) => setLinker(e.currentTarget.value)}
+        />
       </label>
       <label>
         <span>wesl-js</span>
-        <input type="radio" name="linker" value="wesl-js" checked={linker() === 'wesl-js'} onchange={e => setLinker(e.currentTarget.value)} />
+        <input
+          type="radio"
+          name="linker"
+          value="wesl-js"
+          checked={linker() === 'wesl-js'}
+          onchange={(e) => setLinker(e.currentTarget.value)}
+        />
       </label>
-      <a id='github-logo'  href='https://github.com/wgsl-tooling-wg/wesl-playground'><img src={dark() ? GithubLogoDark : GithubLogo} alt='WESL-Sandbox GitHub repository' /></a>
+      <a
+        id="github-logo"
+        href="https://github.com/wgsl-tooling-wg/wesl-playground"
+      >
+        <picture>
+          <source
+            media="(prefers-color-scheme: dark)"
+            srcset={GithubLogoDark}
+          />
+          <img src={GithubLogo} alt="WESL-Sandbox GitHub repository" />
+        </picture>
+      </a>
     </div>
     <div id="left">
       <div class="wrap">
         <div class="head tabs">
-          <For each={files}>{(file, i) => 
-            <TabBtn name={file.name}
-              selected={i() == tab()}
-              onselect={() => setTab(i)}
-              onrename={name => renameFile(i(), name)}
-              ondelete={() => delFile(i())} />
-          }</For>
+          <For each={files}>
+            {(file, i) => (
+              <TabBtn
+                name={file.name}
+                selected={i() == tab()}
+                onselect={() => setTab(i)}
+                onrename={(name) => renameFile(i(), name)}
+                ondelete={() => delFile(i())}
+              />
+            )}
+          </For>
           <div class="tab-btn" role="button" tabindex="0" onclick={newFile}>
             <button tabindex="0">
-              <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12L20 12M12 4L12 20"></path></svg>
+              <svg viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 12L20 12M12 4L12 20"
+                ></path>
+              </svg>
             </button>
           </div>
         </div>
-        <div id="input" ref={elt => setupMonacoInput(elt)}></div>
+        <div id="input" ref={(elt) => setupMonacoInput(elt)}></div>
       </div>
     </div>
     <div id="right">
       <div class="wrap">
-        <div id="message" style={{ display: message() ? 'initial' : 'none' }}><pre innerHTML={message()}></pre></div>
-        <div id="output" style={{ display: output() ? 'initial' : 'none' }} ref={elt => setupMonacoOutput(elt)}></div>
+        <div id="message" style={{ display: message() ? 'initial' : 'none' }}>
+          <pre innerHTML={message()}></pre>
+        </div>
+        <div
+          id="output"
+          style={{ display: output() ? 'initial' : 'none' }}
+          ref={(elt) => setupMonacoOutput(elt)}
+        ></div>
       </div>
     </div>
   </div>
+)
 
-export default App;
+export default App

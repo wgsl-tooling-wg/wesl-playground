@@ -7,20 +7,22 @@ Website: [play.wesl-lang.dev](https://play.wesl-lang.dev) (bleeding edge is some
 Spec Reference: [wesl-spec](https://github.com/wgsl-tooling-wg/wesl-spec)
 
 Supported Implementations:
-* 🟢 [wesl-rs][wesl-rs] (supported)
-* 🟡 [wesl-js][wesl-js] (in progress #1)
-* 🔴 [mew][mew] (planned #3)
-* 🔴 [naga_oil][naga_oil] (planned #2)
+
+- 🟢 [wesl-rs][wesl-rs] (supported)
+- 🟡 [wesl-js][wesl-js] (in progress #1)
+- 🔴 [mew][mew] (planned #3)
+- 🔴 [naga_oil][naga_oil] (planned #2)
 
 ## Building
-* Install: `yarn install`
-* Build: `yarn build` or `yarn dev`
-* Update crate `wesl-web`:
-  * git clone the [`wesl-rs`][wesl-rs] repository somewhere
-  * install [`wasm-pack`][wasm-pack]
-  * compile the `wasm-pack` crate in `wesl-rs/crates/wesl-web`:
-    * release `wasm-pack build path/to/wesl/web --release --target web --out-dir path/to/wesl-playground/src/wesl-web`
-    * development `wasm-pack build path/to/wesl/web --dev --target web --out-dir path/to/wesl-playground/src/wesl-web --features debug`
+
+- Install: `yarn install`
+- Build: `yarn build` or `yarn dev`
+- Update crate `wesl-web`:
+  - git clone the [`wesl-rs`][wesl-rs] repository somewhere
+  - install [`wasm-pack`][wasm-pack]
+  - compile the `wasm-pack` crate in `wesl-rs/crates/wesl-web`:
+    - release `wasm-pack build path/to/wesl/web --release --target web --out-dir path/to/wesl-playground/src/wesl-web`
+    - development `wasm-pack build path/to/wesl/web --dev --target web --out-dir path/to/wesl-playground/src/wesl-web --features debug`
 
 ## Contributing
 
@@ -30,8 +32,8 @@ Contributions are welcome. Please join the [discord](https://discord.gg/Ng5FWmHu
 
 Except where noted (below and/or in individual files), all code in this repository is dual-licensed under either:
 
-* MIT License ([LICENSE-MIT](LICENSE-MIT) or [http://opensource.org/licenses/MIT](http://opensource.org/licenses/MIT))
-* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0))
+- MIT License ([LICENSE-MIT](LICENSE-MIT) or [http://opensource.org/licenses/MIT](http://opensource.org/licenses/MIT))
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0))
 
 at your option.
 
@@ -42,7 +44,6 @@ any contribution intentionally submitted for inclusion in the work by you,
 as defined in the Apache-2.0 license,
 shall be dual licensed as above,
 without any additional terms or conditions.
-
 
 [wesl-rs]: https://github.com/wgsl-tooling-wg/wesl-rs
 [wesl-js]: https://github.com/wgsl-tooling-wg/wesl-js

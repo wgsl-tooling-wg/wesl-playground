@@ -1,6 +1,5 @@
-import wesl from "./wesl-web/wesl_web";
+import wesl from './wesl-web/wesl_web'
 
-function init() {
-}
+function init() {}
 
 wesl().then(init)

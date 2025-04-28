@@ -1,4 +1,12 @@
-import { children, Component, createEffect, createSignal, mergeProps, ParentComponent, Show } from "solid-js"
+import {
+  children,
+  Component,
+  createEffect,
+  createSignal,
+  mergeProps,
+  ParentComponent,
+  Show,
+} from 'solid-js'
 
 export const DropButton: ParentComponent<{ label: string }> = (p) => {
   const [open, setOpen] = createSignal(false)
@@ -27,12 +35,23 @@ export const DropButton: ParentComponent<{ label: string }> = (p) => {
     }
   })
 
-  return <div ref={self}>
-    <button class='drop' onclick={() => setOpen(!open())}>{p.label}<span>▼</span></button>
-    <div style={{ position: 'relative', bottom: 0, left: 0, 'z-index': 100, width: 'max-content' }}>
-      <Show when={open()}>
-        {c()}
-      </Show>
+  return (
+    <div ref={self}>
+      <button class="drop" onclick={() => setOpen(!open())}>
+        {p.label}
+        <span>▼</span>
+      </button>
+      <div
+        style={{
+          position: 'relative',
+          bottom: 0,
+          left: 0,
+          'z-index': 100,
+          width: 'max-content',
+        }}
+      >
+        <Show when={open()}>{c()}</Show>
+      </div>
     </div>
-  </div>
+  )
 }
