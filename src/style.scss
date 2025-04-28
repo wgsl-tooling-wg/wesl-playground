@@ -22,10 +22,8 @@ $border-col: light-dark(#a4a4a4, #969eaf);
 $primary-col: #01aaff;
 
 @function col($n) {
-  @return light-dark(
-    color.adjust(white, $lightness: -$n * 10%),
-    color.adjust(#262a2f, $lightness: $n * 10%)
-  );
+  @return light-dark(color.adjust(white, $lightness: -$n * 20%),
+    color.adjust(#262a2f, $lightness: $n * 20%));
 }
 
 body {
@@ -144,10 +142,10 @@ input[type='text'] {
     @include styled-btn(#2da0f1);
   }
 
-  .drop {
+  .dropdown-btn {
     @include styled-btn(#3e6a9c);
 
-    > span {
+    >span {
       margin-left: 1rem;
       margin-bottom: 0.5rem;
     }
@@ -157,7 +155,7 @@ input[type='text'] {
 #left {
   grid-area: left;
 
-  > .wrap {
+  >.wrap {
     display: flex;
     flex-direction: column;
   }
@@ -199,7 +197,7 @@ input[type='text'] {
   border-radius: 4px;
   overflow: hidden;
 
-  > .wrap {
+  >.wrap {
     display: flex;
     flex-direction: column;
     position: absolute;
@@ -227,7 +225,7 @@ input[type='text'] {
   border-bottom: 1px solid lightgrey;
   background: $edit-col;
 
-  > pre {
+  >pre {
     margin: 0;
     overflow: auto;
     width: 100%;
@@ -310,45 +308,64 @@ input[type='text'] {
   border: 1px solid $border-col;
   border-radius: 3px;
 
-  > span {
+  >span {
     padding: 0.5rem 0.5rem;
     font-weight: bold;
     font-size: 1.2rem;
     border-bottom: 1px solid $border-col;
   }
 
-  > label {
+  >label {
     padding: 0.5rem 0.5rem;
 
     &.disabled {
-      > span {
+      >span {
         color: grey;
       }
     }
 
-    > span {
+    >span {
       margin-right: 1rem;
     }
 
-    > input[type='text'],
+    >input[type='text'],
     select {
       width: 15rem;
       float: right;
     }
 
-    > input[type='checkbox'] {
+    >input[type='checkbox'] {
       margin-right: 0.5rem;
     }
   }
 
   &::before {
+    $size: .75rem;
     content: '';
     position: absolute;
-    top: -0.7rem;
+    top: -$size;
     left: 3rem;
-    border-left: 1rem solid transparent;
-    border-right: 1rem solid transparent;
-    border-bottom: 1rem solid $border-col;
+    border-left: $size solid transparent;
+    border-right: $size solid transparent;
+    border-bottom: $size solid $border-col;
     z-index: -1;
+  }
+}
+
+.dropdown-target {
+
+  .fade-enter-active,
+  .fade-exit-active {
+    transition: opacity 0.25s, transform 0.25s;
+  }
+
+  .fade-enter,
+  .fade-exit-to {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  .fade-enter {
+    transform: translateY(-10px);
   }
 }

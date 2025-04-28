@@ -1,16 +1,8 @@
-import {
-  children,
-  Component,
-  createEffect,
-  createSignal,
-  mergeProps,
-  ParentComponent,
-  Show,
-} from 'solid-js'
+import { createEffect, createSignal, ParentComponent, Show } from 'solid-js'
+import { Transition } from 'solid-transition-group'
 
 export const DropButton: ParentComponent<{ label: string }> = (p) => {
   const [open, setOpen] = createSignal(false)
-  const c = children(() => p.children)
   let self: HTMLDivElement
 
   function onClick(e: MouseEvent) {
@@ -36,12 +28,13 @@ export const DropButton: ParentComponent<{ label: string }> = (p) => {
   })
 
   return (
-    <div ref={self}>
-      <button class="drop" onclick={() => setOpen(!open())}>
+    <div ref={self} class={open() ? 'visible' : 'hidden'}>
+      <button class="dropdown-btn" onclick={() => setOpen(!open())}>
         {p.label}
         <span>▼</span>
       </button>
       <div
+        class="dropdown-target"
         style={{
           position: 'relative',
           bottom: 0,
@@ -50,7 +43,9 @@ export const DropButton: ParentComponent<{ label: string }> = (p) => {
           width: 'max-content',
         }}
       >
-        <Show when={open()}>{c()}</Show>
+        <Transition name="fade">
+          <Show when={open()}>{p.children}</Show>
+        </Transition>
       </div>
     </div>
   )
