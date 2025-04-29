@@ -10,6 +10,18 @@
   box-sizing: border-box;
 }
 
+:root {
+  color-scheme: light dark;
+
+  &.dark {
+    color-scheme: dark;
+  }
+
+  &.light {
+    color-scheme: light;
+  }
+}
+
 html {
   height: 100%;
 }
@@ -19,11 +31,11 @@ $bg-col: light-dark(white, #13171f);
 $edit-col: light-dark(#efefef, #262a2f);
 $dropdown-col: $edit-col;
 $border-col: light-dark(#a4a4a4, #969eaf);
-$primary-col: #01aaff;
+$primary-col: #2e76ff;
 
 @function col($n) {
-  @return light-dark(color.adjust(white, $lightness: -$n * 20%),
-    color.adjust(#262a2f, $lightness: $n * 20%));
+  @return light-dark(color.adjust(white, $lightness: -$n * 10%),
+    color.adjust(#262a2f, $lightness: $n * 10%));
 }
 
 body {
@@ -35,7 +47,6 @@ body {
   font-family: 'Roboto', Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   color: $text-col;
   background-color: $bg-col;
-  color-scheme: light dark;
 }
 
 a {
@@ -89,19 +100,31 @@ input[type='text'] {
     margin: 0;
   }
 
-  a#github-logo {
+  .right {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
 
-    img {
-      width: 2.5rem;
-      height: 2.5rem;
+    .icon {
+      width: 1.5rem;
+      height: 1.5rem;
+
+      fill: $text-col;
+      stroke: $text-col;
+      color: $text-col;
     }
+  }
+
+  a {
+    line-height: 0;
   }
 
   a#wesl-logo {
     img {
+      // manually adjust the logo size and position so the text aligns with "Playground"
       height: 2rem;
-      margin-bottom: 0.2rem;
+      margin-bottom: 0.4rem;
     }
   }
 
@@ -116,22 +139,42 @@ input[type='text'] {
   }
 
   @mixin styled-btn($color) {
-    background-color: $color;
+    color: $color;
     transition: all 0.2s ease;
-    border: 2px solid $color;
+    display: flex;
+    align-items: center;
+    border: 2px solid transparent;
+    transition: border .2s ease-out, background-color .2s ease-out, color .2s ease-out;
+    border-radius: 4px;
+    font-size: 1.2rem;
 
-    &:hover {
-      background-color: color.adjust($color, $lightness: 2%);
-      border: 2px solid color.adjust($color, $lightness: -2%);
+    >.icon {
+      height: 100%;
+      margin-right: 0.6rem;
+    }
+
+    &:hover,
+    &:active,
+    &:focus-visible,
+    &.active {
+      color: $color;
+      border: 2px solid $color;
     }
 
     &:active {
-      background-color: color.adjust($color, $lightness: -2%);
+      background-color: $color;
+      color: white;
     }
   }
 
   #btn-run {
     @include styled-btn(#6fac1c);
+
+    >.icon {
+      // the run button is not flush to the right, we need to reduce the margin a bit
+      margin-right: 0.3rem;
+    }
+
   }
 
   #btn-reset {
@@ -142,13 +185,11 @@ input[type='text'] {
     @include styled-btn(#2da0f1);
   }
 
-  .dropdown-btn {
-    @include styled-btn(#3e6a9c);
+  .dropdown-button {
+    @include styled-btn($text-col);
 
-    >span {
-      margin-left: 1rem;
-      margin-bottom: 0.5rem;
-    }
+    display: inline-flex;
+    align-items: center;
   }
 }
 
@@ -160,7 +201,7 @@ input[type='text'] {
     flex-direction: column;
   }
 
-  #input {
+  .editor {
     flex-grow: 1;
   }
 }
@@ -168,7 +209,7 @@ input[type='text'] {
 #right {
   grid-area: right;
 
-  #output {
+  .editor {
     width: 100%;
     height: 100%;
     background-color: col(3);
@@ -238,29 +279,67 @@ input[type='text'] {
   display: flex;
   gap: 0.1rem;
 
-  button {
-    width: 1rem;
-    height: 1rem;
-  }
-
   .tab-btn {
     display: flex;
     user-select: none;
     height: 100%;
     align-items: center;
     gap: 0.25rem;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem;
     background-color: col(2);
-    border-bottom: 1px solid col(2);
     transition: all 0.1s ease;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 0;
+      z-index: 1;
+      background-color: $primary-col;
+      pointer-events: none;
+      transition: all 0.1s ease;
+    }
+
+    &.selected {
+      background-color: col(3);
+
+      &::after {
+        height: 4px;
+      }
+    }
 
     &:not(.selected):hover {
       background-color: col(3);
     }
 
-    &.selected {
-      background-color: col(3);
-      border-bottom: 3px solid #2e76ff;
+    &.text {
+      padding-left: 1rem;
+
+      button {
+        margin-left: 0.25rem;
+        opacity: 0;
+        transition: all 0.1s ease;
+      }
+
+      &:hover button {
+        opacity: 1;
+      }
+    }
+
+    button {
+      height: 100%;
+      padding: 4px;
+
+      svg {
+        border-radius: 4px;
+      }
+
+      &:hover svg {
+        background: $bg-col;
+      }
     }
 
     svg {
@@ -268,27 +347,6 @@ input[type='text'] {
       height: 100%;
       stroke: $text-col;
       transition: all 0.1s ease;
-    }
-
-    &.text {
-      padding-right: 0.5rem;
-
-      button {
-        margin-left: 0.25rem;
-        opacity: 0;
-        border-radius: 4px;
-        padding: 5px;
-        box-sizing: content-box;
-        transition: all 0.1s ease;
-
-        &:hover {
-          background: #e8e8e8;
-        }
-      }
-
-      &:hover button {
-        opacity: 1;
-      }
     }
   }
 }
@@ -334,7 +392,8 @@ input[type='text'] {
       float: right;
     }
 
-    >input[type='checkbox'] {
+    >input[type='checkbox'],
+    input[type='radio'] {
       margin-right: 0.5rem;
     }
   }
