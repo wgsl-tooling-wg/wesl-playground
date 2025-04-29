@@ -4,7 +4,6 @@ import {
   BsSun as LightIcon,
   BsMoon as DarkIcon,
   BsCircleHalf as SystemIcon,
-  BsGithub as GithubIcon,
 } from 'solid-icons/bs'
 import { createLocalSignal } from './storage'
 

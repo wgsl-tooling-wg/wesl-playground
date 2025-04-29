@@ -1,6 +1,6 @@
 import monaco, { editorWorker } from './monaco'
 
-import { createEffect, createSignal } from 'solid-js'
+import { createEffect } from 'solid-js'
 import { Diagnostic } from './wesl-web/wesl_web'
 import { dark } from './Theme'
 

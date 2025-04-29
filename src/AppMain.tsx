@@ -1,4 +1,4 @@
-import { For, createSignal, createEffect, on, createReaction } from 'solid-js'
+import { createSignal, createEffect, createReaction } from 'solid-js'
 import { trackStore } from '@solid-primitives/deep'
 import {
   BsPlayFill as RunIcon,
@@ -12,8 +12,8 @@ import './style.scss'
 import * as wesl from './wesl-web/wesl_web'
 import './app'
 import { DropButton } from './DropButton'
-import WeslLogo from './assets/logo-horizontal-light.svg'
-import WeslLogoDark from './assets/logo-horizontal-dark.svg'
+import WeslLogo from './assets/logo/logo-horizontal-light.svg'
+import WeslLogoDark from './assets/logo/logo-horizontal-dark.svg'
 import { sharedState, saveSharedState, clearSharedState } from './share'
 import { filesSchema, optionsSchema } from './state'
 import {
@@ -72,7 +72,7 @@ createEffect(() => {
 createEffect(() => {
   if (files.length == 0) {
     setFiles([
-      { name: 'main.wgsl', source: 'fn main() -> u32 {\n    return 0u;\n}\n' },
+      { name: 'main', source: 'fn main() -> u32 {\n    return 0u;\n}\n' },
     ])
   }
 })
