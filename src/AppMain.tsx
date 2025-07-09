@@ -1,4 +1,4 @@
-import { createSignal, createEffect, createReaction } from 'solid-js'
+import { createSignal, createEffect, createReaction, Show } from 'solid-js'
 import { trackStore } from '@solid-primitives/deep'
 import {
   BsPlayFill as RunIcon,
@@ -43,6 +43,7 @@ const [tab, setTab] = createSignal(0)
 const [diagnostics, setDiagnostics] = createSignal<wesl.Diagnostic[]>([])
 const [output, setOutput] = createSignal('')
 const [message, setMessage] = createSignal(DEFAULT_MESSAGE)
+const [showRender, setShowRender] = createSignal(false)
 
 const setSource = (source: string) =>
   setFiles(tab(), { name: files[tab()].name, source })
@@ -214,8 +215,10 @@ const LeftPane = () => (
         labels={files.map((f) => f.name)}
         selected={tab()}
         onselect={setTab}
-        ondelete={delFile}
-        onrename={renameFile}
+        closable
+        onclose={delFile}
+        editable
+        onedit={renameFile}
         oncreate={newFile}
       />
       <Editor
@@ -230,14 +233,24 @@ const LeftPane = () => (
 const RightPane = () => (
   <div id="right">
     <div class="wrap">
-      <div id="message" style={{ display: message() ? 'initial' : 'none' }}>
-        <pre innerHTML={message()}></pre>
-      </div>
-      <Editor
-        content={output()}
-        diagnostics={diagnostics().filter((d) => d.file === 'output')}
-        readonly
+      <Tabs
+        labels={['Compiler output', 'Rendered']}
+        selected={showRender() ? 1 : 0}
+        onselect={(t) => setShowRender(t === 1)}
       />
+      <Show when={!showRender()}>
+        <div id="message" style={{ display: message() ? 'initial' : 'none' }}>
+          <pre innerHTML={message()}></pre>
+        </div>
+        <Editor
+          content={output()}
+          diagnostics={diagnostics().filter((d) => d.file === 'output')}
+          readonly
+        />
+      </Show>
+      <Show when={showRender()}>
+        <div>TODO</div>
+      </Show>
     </div>
   </div>
 )

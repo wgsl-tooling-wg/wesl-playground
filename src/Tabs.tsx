@@ -1,12 +1,14 @@
-import { createSignal, For } from 'solid-js'
+import { createSignal, For, Show } from 'solid-js'
 import { BsX as CloseIcon, BsPlus as AddIcon } from 'solid-icons/bs'
 
 export interface TabButtonProps {
   name: string
   selected: boolean
   onselect: () => void
-  onrename: (name: string) => void
-  ondelete: () => void
+  editable?: boolean
+  onedit: (name: string) => void
+  closable?: boolean
+  onclose: () => void
 }
 
 export const TabButton = (props: TabButtonProps) => {
@@ -17,7 +19,7 @@ export const TabButton = (props: TabButtonProps) => {
 
   function endEditable(e: Event & { currentTarget: HTMLElement }) {
     e.currentTarget.contentEditable = 'false'
-    props.onrename(e.currentTarget.textContent!)
+    props.onedit(e.currentTarget.textContent!)
     e.currentTarget.blur()
   }
 
@@ -28,30 +30,33 @@ export const TabButton = (props: TabButtonProps) => {
     }
   }
 
-  function ondelete(e: Event & { currentTarget: HTMLElement }) {
+  function onclose(e: Event & { currentTarget: HTMLElement }) {
     e.stopPropagation()
-    props.ondelete()
+    props.onclose()
   }
 
   return (
     <div
-      class="tab-btn text"
+      class="tab-btn"
       classList={{ selected: props.selected }}
       role="button"
       tabindex="0"
       onclick={props.onselect}
     >
       <div
-        ondblclick={setEditable}
+        class="text"
+        ondblclick={props.editable ? setEditable : undefined}
         onblur={endEditable}
         onkeydown={onkeydown}
         contenteditable={false}
       >
         {props.name}
       </div>
-      <button onclick={ondelete}>
+      <Show when={props.closable}>
+      <button onclick={onclose}>
         <CloseIcon />
       </button>
+      </Show>
     </div>
   )
 }
@@ -60,8 +65,11 @@ export interface TabProps {
   labels: string[]
   selected?: number
   onselect?: (tab: number) => void
-  onrename?: (tab: number, label: string) => void
-  ondelete?: (tab: number) => void
+  editable?: boolean
+  onedit?: (tab: number, label: string) => void
+  closable?: boolean
+  onclose?: (tab: number) => void
+  creatable?: boolean
   oncreate?: () => void
 }
 
@@ -75,15 +83,15 @@ export const Tabs = (props: TabProps) => {
     }
   }
 
-  function onrename(n: number) {
+  function onedit(n: number) {
     return (label: string) => {
-      props.onrename?.(n, label)
+      props.onedit?.(n, label)
     }
   }
 
-  function ondelete(n: number) {
+  function onclose(n: number) {
     return () => {
-      props.ondelete?.(n)
+      props.onclose?.(n)
     }
   }
 
@@ -95,16 +103,20 @@ export const Tabs = (props: TabProps) => {
             name={label}
             selected={i() === tab()}
             onselect={onselect(i())}
-            onrename={onrename(i())}
-            ondelete={ondelete(i())}
+            editable={props.editable}
+            onedit={onedit(i())}
+            closable={props.closable}
+            onclose={onclose(i())}
           />
         )}
       </For>
-      <div class="tab-btn" role="button" tabindex="0">
-        <button tabindex="0" onclick={props.oncreate}>
-          <AddIcon />
-        </button>
-      </div>
+      <Show when={props.closable}>
+        <div class="tab-btn" role="button" tabindex="0">
+          <button tabindex="0" onclick={props.oncreate}>
+            <AddIcon />
+          </button>
+        </div>
+      </Show>
     </div>
   )
 }

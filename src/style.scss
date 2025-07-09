@@ -315,21 +315,12 @@ input[type='text'] {
       background-color: col(3);
     }
 
-    &.text {
-      padding-left: 1rem;
-
-      button {
-        margin-left: 0.25rem;
-        opacity: 0;
-        transition: all 0.1s ease;
-      }
-
-      &:hover button {
-        opacity: 1;
-      }
+    >.text {
+      margin: 0 0.5rem;
     }
 
     button {
+      transition: all 0.1s ease;
       height: 100%;
       padding: 4px;
 
@@ -341,6 +332,16 @@ input[type='text'] {
         background: $bg-col;
       }
     }
+
+    >.text+button {
+      margin-left: -0.5rem;
+      opacity: 0;
+    }
+
+    &:hover>.text+button {
+      opacity: 1;
+    }
+
 
     svg {
       width: 100%;
