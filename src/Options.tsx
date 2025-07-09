@@ -154,6 +154,14 @@ export const OptionsForm = (props: OptionsProps) => (
         <option value="escape">Escape</option>
       </select>
     </label>
+    <label>
+      <input
+        type="checkbox"
+        checked={props.options.mangle_root}
+        onchange={(e) => props.setOptions('mangle_root', e.currentTarget.checked)}
+      />
+      <span>mangle root declarations</span>
+    </label>
     <label classList={{ disabled: !props.options.condcomp }}>
       <span>cond. comp. features</span>
       <input
@@ -168,11 +176,11 @@ export const OptionsForm = (props: OptionsProps) => (
         }}
       />
     </label>
-    <label classList={{ disabled: !props.options.strip }}>
+    <label classList={{ disabled: !props.options.strip || props.options.keep_root }}>
       <span>strip: keep declarations</span>
       <input
         type="text"
-        disabled={!props.options.strip}
+        disabled={!props.options.strip || props.options.keep_root}
         value={strEntrypoints(props.options.keep)}
         onchange={(e) =>
           props.setOptions('keep', () =>
@@ -180,6 +188,15 @@ export const OptionsForm = (props: OptionsProps) => (
           )
         }
       />
+    </label>
+    <label classList={{ disabled: !props.options.strip }}>
+      <input
+        type="checkbox"
+        disabled={!props.options.strip}
+        checked={props.options.keep_root}
+        onchange={(e) => props.setOptions('keep_root', e.currentTarget.checked)}
+      />
+      <span>strip: keep root declarations</span>
     </label>
   </div>
 )

@@ -22,6 +22,8 @@ export const schema = z.object({
     naga: z.boolean(),
     lazy: z.boolean(),
     keep: z.array(z.string()).optional(),
+    keep_root: z.boolean(),
+    mangle_root: z.boolean(),
     features: z.object({}).catchall(z.boolean()),
     runtime: z.boolean(),
     expr: z.string(),

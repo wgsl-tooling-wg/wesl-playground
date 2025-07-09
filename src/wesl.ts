@@ -6,8 +6,9 @@ import * as WeslJs from 'wesl'
 export async function compileRs(files: Files, options: Options) {
   const params = {
     ...options,
+    root: 'package::' + options.root,
     files: Object.fromEntries(
-      files.map(({ name, source }) => ['./' + name + '.wesl', source]),
+      files.map(({ name, source }) => ['package::' + name, source]),
     ),
   } as WeslRs.Command
 
