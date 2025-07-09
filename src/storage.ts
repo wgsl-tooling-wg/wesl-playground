@@ -65,10 +65,25 @@ export function initFiles(): Files {
   const defaultFiles = [
     {
       name: 'main',
-      source:
-        'import super::util::my_fn;\nfn main() -> u32 {\n    return my_fn();\n}\n',
+      source: `import package::util::rand22;
+
+@fragment
+fn main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  let r = rand22(pos.xy);
+  return vec4f(r, r, r, 1.0);
+}`,
     },
-    { name: 'util', source: 'fn my_fn() -> u32 { return 42; }' },
+    {
+      name: 'util',
+      source: `// On generating random numbers, with help of y= [(a+x)sin(bx)] mod 1", W.J.J. Rey, 22nd European Meeting of Statisticians 1998
+// from https://gist.github.com/munrocket/236ed5ba7e409b8bdf1ff6eca5dcdc39
+fn rand11(n: f32) -> f32 {
+    return fract(sin(n) * 43758.5453123);
+}
+fn rand22(n: vec2f) -> f32 {
+    return fract(sin(dot(n, vec2f(12.9898, 4.1414))) * 43758.5453);
+}`,
+    },
   ]
   return defaultFiles
 }
@@ -90,7 +105,7 @@ export function initOptions(): Options {
     lazy: true,
     keep: undefined,
     keep_root: true,
-    mangle_root: true,
+    mangle_root: false,
     features: {},
     // eval args
     runtime: false,

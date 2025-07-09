@@ -28,6 +28,7 @@ import { Tabs } from './Tabs'
 import { dark, ThemeButton } from './Theme'
 import { Editor } from './Editor'
 import { compile } from './wesl'
+import { Render } from './Canvas'
 
 const DEFAULT_MESSAGE = `Visit <a href="https://wesl-lang.dev">wesl-lang.dev</a> to learn WESL.`
 
@@ -238,10 +239,10 @@ const RightPane = () => (
         selected={showRender() ? 1 : 0}
         onselect={(t) => setShowRender(t === 1)}
       />
+      <div id="message" style={{ display: message() ? 'initial' : 'none' }}>
+        <pre innerHTML={message()}></pre>
+      </div>
       <Show when={!showRender()}>
-        <div id="message" style={{ display: message() ? 'initial' : 'none' }}>
-          <pre innerHTML={message()}></pre>
-        </div>
         <Editor
           content={output()}
           diagnostics={diagnostics().filter((d) => d.file === 'output')}
@@ -249,7 +250,7 @@ const RightPane = () => (
         />
       </Show>
       <Show when={showRender()}>
-        <div>TODO</div>
+        <Render frag={output()} entrypoint="main" />
       </Show>
     </div>
   </div>

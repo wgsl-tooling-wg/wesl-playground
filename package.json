@@ -13,6 +13,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/ansi-html": "^0.0.0",
+    "@webgpu/types": "^0.1.64",
     "prettier": "3.5.3",
     "sass-embedded": "^1.79.4",
     "solid-devtools": "^0.30.1",
