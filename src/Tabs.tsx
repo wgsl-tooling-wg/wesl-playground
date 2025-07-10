@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from 'solid-js'
+import { createEffect, createSignal, For, Show } from 'solid-js'
 import { BsX as CloseIcon, BsPlus as AddIcon } from 'solid-icons/bs'
 
 export interface TabButtonProps {
@@ -75,6 +75,14 @@ export interface TabProps {
 
 export const Tabs = (props: TabProps) => {
   const [tab, setTab] = createSignal(0)
+
+  createEffect(() => {
+    if (props.selected != tab() || props.labels.length <= tab()) {
+      const n = Math.min(props.selected ?? 0, props.labels.length - 1)
+      setTab(n)
+      props.onselect?.(n)
+    }
+  })
 
   function onselect(n: number) {
     return () => {

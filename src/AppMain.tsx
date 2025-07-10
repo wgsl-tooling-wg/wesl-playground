@@ -85,6 +85,7 @@ function removeIndex<T>(array: readonly T[], index: number): T[] {
 
 const newFile = () => {
   setFiles(files.length, { name: `tab${files.length + 1}`, source: '' })
+  setTab(files.length - 1)
 }
 
 const delFile = (i: number) => {
