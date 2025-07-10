@@ -30,6 +30,11 @@ export async function compileJs(files: Files, options: Options) {
     throw new Error('wesl-js command not supported: ' + options.command)
   }
 
+  const plugins = []
+  if (options.binding_structs) {
+    plugins.push(WeslJs.bindingStructsPlugin())
+  }
+
   const params: WeslJs.LinkParams = {
     weslSrc: Object.fromEntries(
       files.map(({ name, source }) => ['./' + name + '.wesl', source]),
@@ -39,14 +44,16 @@ export async function compileJs(files: Files, options: Options) {
     conditions: options.features,
     // libs?: WgslBundle[];
     // virtualLibs?: Record<string, VirtualLibraryFn>;
-    // config?: LinkConfig;
+    config: { plugins },
     // constants?: Record<string, string | number>;
     mangler:
-      options.mangler === 'escape'
-        ? underscoreMangle
-        : options.mangler === 'hash'
-          ? underscoreMangle
-          : undefined,
+      options.mangler === 'minimal'
+        ? WeslJs.minimalMangle
+        : options.mangler === 'lengthprefix'
+          ? WeslJs.lengthPrefixMangle
+          : options.mangler === 'escape'
+            ? WeslJs.underscoreMangle
+            : undefined,
   }
   try {
     console.debug('[wesl-js] run params', params)
@@ -70,19 +77,4 @@ export async function compile(files: Files, options: Options, linker: string) {
   } else {
     throw new Error('unsupported linker ' + linker)
   }
-}
-
-// TODO: copy-pasted from wesl-js
-function underscoreMangle(decl: any, srcModule: any): string {
-  const { modulePath } = srcModule
-  return [...modulePath.split('::'), decl.originalName]
-    .map((v) => {
-      const underscoreCount = (v.match(/_/g) ?? []).length
-      if (underscoreCount > 0) {
-        return '_' + underscoreCount + v
-      } else {
-        return v
-      }
-    })
-    .join('_')
 }

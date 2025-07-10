@@ -28,6 +28,7 @@ export const schema = z.object({
     runtime: z.boolean(),
     expr: z.string(),
     overrides: z.object({}).catchall(z.string()),
+    binding_structs: z.boolean(),
   }),
 })
 

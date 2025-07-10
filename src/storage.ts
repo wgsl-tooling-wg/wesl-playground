@@ -91,7 +91,6 @@ fn quadraticMap(z: Complex, c: Complex) -> Complex {
 /// Evaluates the mandelbrot set, and returns how long it takes to escape
 /// 0 => escapes instantly
 /// 1 => did not escape
-@const
 fn mandelbrot(position: Complex) -> f32 {
     const maxIterations: u32 = 100;
 
