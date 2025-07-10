@@ -1,9 +1,10 @@
 import { Options, Files } from './state'
 
-import * as WeslRs from './wesl-web/wesl_web'
+import InitWeslRs, * as WeslRs from './wesl-web/wesl_web'
 import * as WeslJs from 'wesl'
 
 export async function compileRs(files: Files, options: Options) {
+  await InitWeslRs()
   const params = {
     ...options,
     root: 'package::' + options.root,

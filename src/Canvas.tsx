@@ -28,22 +28,64 @@ export function Render(props: RenderProps) {
   let device: GPUDevice
   let context: GPUCanvasContext
   let pipeline: GPURenderPipeline
+  let uniformBuffer: GPUBuffer
+  let bindGroup: GPUBindGroup
   let frameHandle = 0
+  let mouse = { x: 0, y: 0 }
+  let time = 0
 
-  const [error, setError] = createSignal('')
+  const [message, setMessage] = createSignal('')
 
   async function createPipeline(frag: string, entrypoint: string) {
-    const fragModule = device.createShaderModule({ code: frag })
+    const code = frag
+    const fragModule = device.createShaderModule({ code })
 
-    setError('')
+    setMessage('')
     const info = await fragModule.getCompilationInfo()
     if (info.messages.some((m) => m.type === 'error')) {
       const err = info.messages.map((m) => m.message).join('\n')
-      setError(err)
+      setMessage(err)
+      return
     }
 
+    uniformBuffer = device.createBuffer({
+      label: 'uniforms buffer',
+      size: 32,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    })
+
+    const bindGroupLayout = device.createBindGroupLayout({
+      label: 'uniforms bind group layout',
+      entries: [
+        {
+          // uniforms
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: { type: 'uniform' },
+        },
+      ],
+    })
+
+    bindGroup = device.createBindGroup({
+      label: 'uniforms bind group',
+      layout: bindGroupLayout,
+      entries: [
+        {
+          // uniforms
+          binding: 0,
+          resource: { buffer: uniformBuffer },
+        },
+      ],
+    })
+
+    const pipelineLayout = device.createPipelineLayout({
+      label: 'render pipeline layout',
+      bindGroupLayouts: [bindGroupLayout],
+    })
+
     pipeline = device.createRenderPipeline({
-      layout: 'auto',
+      label: 'render pipeline',
+      layout: pipelineLayout,
       vertex: {
         module: device.createShaderModule({ code: vert }),
         entryPoint: 'main',
@@ -55,7 +97,8 @@ export function Render(props: RenderProps) {
       },
       primitive: { topology: 'triangle-list' },
     })
-    console.log('Created render pipeline')
+
+    setMessage('')
   }
 
   function render() {
@@ -71,23 +114,53 @@ export function Render(props: RenderProps) {
       ],
     })
     pass.setPipeline(pipeline)
+    pass.setBindGroup(0, bindGroup)
     pass.draw(6)
     pass.end()
     device.queue.submit([commandEncoder.finish()])
   }
 
+  function clear() {
+    const commandEncoder = device.createCommandEncoder();
+    const pass = commandEncoder.beginRenderPass({
+      colorAttachments: [{
+        view: context.getCurrentTexture().createView(),
+        loadOp: 'clear',
+        storeOp: 'store',
+        clearValue: [0, 0, 0, 1],
+      }]
+    });
+
+    pass.end();
+    device.queue.submit([commandEncoder.finish()]);
+  }
+
   function frame() {
     canvas.width = canvas.clientWidth
     canvas.height = canvas.clientHeight
+
+    const timestamp = performance.now() / 1000
+    const bufferData = new Float32Array(8)
+    const vp = canvas.getBoundingClientRect()
+    bufferData[0] = vp.width
+    bufferData[1] = vp.height
+    bufferData[2] = mouse.x - vp.left
+    bufferData[3] = mouse.y - vp.top
+    bufferData[4] = timestamp
+    bufferData[5] = timestamp - time
+    time - timestamp
+    device.queue.writeBuffer(uniformBuffer, 0, bufferData.buffer)
+
     render()
     frameHandle = requestAnimationFrame(frame)
   }
 
   onMount(async () => {
     if (!navigator.gpu) {
-      setError('WebGPU is not supported in your navigator.')
       return
     }
+
+    window.addEventListener('mousemove', onMouseMove)
 
     const adapter = await navigator.gpu.requestAdapter()
     device = await adapter!.requestDevice()
@@ -104,19 +177,40 @@ export function Render(props: RenderProps) {
 
   createEffect(
     on([() => props.frag, () => props.entrypoint], async () => {
-      console.log('Updating render pipeline')
-      if (device) {
+      if (device && props.frag) {
+      }
+      if (!navigator.gpu) {
+        setMessage('WebGPU is not supported in your navigator')
+      }
+      else if (!device) {
+        setMessage('WebGPU is not initialized')
+      }
+      else if (!props.frag) {
+        setMessage('Shader compilation error')
+      }
+      else {
+        setMessage('Updating shader…')
+        clear()
         await createPipeline(props.frag, props.entrypoint)
+        time = performance.now()
       }
     }),
   )
 
-  onCleanup(() => cancelAnimationFrame(frameHandle))
+  onCleanup(() => {
+    window.removeEventListener('mousemove', onMouseMove)
+    cancelAnimationFrame(frameHandle)
+  })
+
+  function onMouseMove(e: MouseEvent) {
+    mouse.x = e.clientX
+    mouse.y = e.clientY
+  }
 
   return (
     <div class="render">
-      <Show when={error()}>
-        <div class="error">{error()}</div>
+      <Show when={message()}>
+        <div class="error">{message()}</div>
       </Show>
       <canvas ref={canvas} />
     </div>

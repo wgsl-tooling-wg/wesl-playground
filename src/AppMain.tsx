@@ -39,7 +39,7 @@ const [options, setOptions] = createLocalStore(
   optionsSchema,
 )
 const [linker, setLinker] = createLocalSignal('linker', initLinker())
-const [autorun, setAutorun] = createSignal(false)
+const [autorun, setAutorun] = createSignal(true)
 const [tab, setTab] = createSignal(0)
 const [diagnostics, setDiagnostics] = createSignal<wesl.Diagnostic[]>([])
 const [output, setOutput] = createSignal('')
