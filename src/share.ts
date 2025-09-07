@@ -1,6 +1,6 @@
 import { createSignal, onCleanup, onMount } from 'solid-js'
-import { filesSchema, schema, State } from './state'
-import { getLocal, initFiles, initOptions } from './storage'
+import { filesSchema, partialSchema, schema, State } from './state'
+import { getLocal, initFiles, initLinker, initOptions } from './storage'
 
 // TODO: move that to wesl-lang.dev
 const SHARE_URL = 'https://wesl.thissma.fr/share'
@@ -59,7 +59,12 @@ async function loadSharedState(hash: string): Promise<State> {
   }
 
   const json = JSON.parse(await response.text())
-  const state = schema.parse(json)
+  const partialState = partialSchema.parse(json)
+  const state: State = {
+    options: Object.assign(initOptions(), partialState.options),
+    files: partialState.files ?? initFiles(),
+    linker: partialState.linker ?? initLinker(),
+  }
   console.debug('loaded hash', hash, state)
   return state
 }
