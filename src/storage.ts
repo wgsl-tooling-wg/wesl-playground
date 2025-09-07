@@ -1,7 +1,7 @@
 import { Accessor, createEffect, createSignal, Setter } from 'solid-js'
 import { createStore, SetStoreFunction, Store } from 'solid-js/store'
 import { z } from 'zod'
-import { Options, schema, Files } from './state'
+import { Options, Files, optionsSchema } from './state'
 
 const urlParams = new URLSearchParams(window.location.search)
 
@@ -102,7 +102,7 @@ fn mandelbrot(position: Complex) -> f32 {
         }
     }
     return 1.0;
-}`
+}`,
     },
     {
       name: 'bindings',
@@ -121,8 +121,8 @@ struct Uniforms {
 
 @group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
-`
-    }
+`,
+    },
   ]
   return defaultFiles
 }
@@ -149,12 +149,12 @@ export function initOptions(): Options {
     // eval args
     runtime: false,
     expr: '',
-    // bindings: new Map(),
     overrides: {},
+    binding_structs: false,
   }
 
   const urlOptions: Partial<Options> = Object.fromEntries(
-    Object.entries(schema.shape.options.shape)
+    Object.entries(optionsSchema.shape)
       .map(([key, schema]) => {
         const param = urlParams.get(key)
         try {
