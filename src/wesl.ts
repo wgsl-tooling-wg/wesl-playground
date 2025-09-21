@@ -3,14 +3,37 @@ import { Options, Files } from './state'
 import InitWeslRs, * as WeslRs from './wesl-web/wesl_web'
 import * as WeslJs from 'wesl'
 
+import bevy_wgsl from './packages/bevy_wgsl.json'
+import lygia_wgsl from './packages/lygia_wgsl.json'
+
+type Pkg = { [k: string]: string | Pkg }
+
+function flattenPkgFiles(pkg: Pkg, parent: string): [string, string][] {
+  return Object.entries(pkg).flatMap(([k, v]) => {
+    const name = `${parent}::${k}`
+    if (typeof v === 'string') {
+      return [[name, v]]
+    } else {
+      return flattenPkgFiles(v, name)
+    }
+  })
+}
+
 export async function compileRs(files: Files, options: Options) {
   await InitWeslRs()
+
+  const flatFiles = Object.fromEntries([
+    ...files.map(({ name, source }) => ['package::' + name, source]),
+    ...flattenPkgFiles(bevy_wgsl, 'bevy'),
+    ...flattenPkgFiles(lygia_wgsl, 'lygia'),
+  ])
+
+  console.log('files', flatFiles)
+
   const params = {
     ...options,
     root: 'package::' + options.root,
-    files: Object.fromEntries(
-      files.map(({ name, source }) => ['package::' + name, source]),
-    ),
+    files: flatFiles,
   } as WeslRs.Command
 
   try {
