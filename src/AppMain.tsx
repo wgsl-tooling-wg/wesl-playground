@@ -1,4 +1,10 @@
-import { createSignal, createEffect, createReaction, Show } from 'solid-js'
+import {
+  createSignal,
+  createEffect,
+  createReaction,
+  Switch,
+  Match,
+} from 'solid-js'
 import { trackStore } from '@solid-primitives/deep'
 import {
   BsPlayFill as RunIcon,
@@ -29,6 +35,7 @@ import { dark, ThemeButton } from './Theme'
 import { Editor } from './Editor'
 import { compile } from './wesl'
 import { Render } from './Canvas'
+import { PackageExplorer } from './PackageExplorer'
 
 const DEFAULT_MESSAGE = `Visit <a href="https://wesl-lang.dev">wesl-lang.dev</a> to learn WESL.`
 
@@ -41,10 +48,10 @@ const [options, setOptions] = createLocalStore(
 const [linker, setLinker] = createLocalSignal('linker', initLinker())
 const [autorun, setAutorun] = createSignal(true)
 const [tab, setTab] = createSignal(0)
+const [rightTab, setRightTab] = createSignal(0)
 const [diagnostics, setDiagnostics] = createSignal<wesl.Diagnostic[]>([])
 const [output, setOutput] = createSignal('')
 const [message, setMessage] = createSignal(DEFAULT_MESSAGE)
-const [showRender, setShowRender] = createSignal(false)
 
 const setSource = (source: string) =>
   setFiles(tab(), { name: files[tab()].name, source })
@@ -248,23 +255,28 @@ const RightPane = () => (
   <div id="right">
     <div class="wrap">
       <Tabs
-        labels={['Compiler output', 'Rendered']}
-        selected={showRender() ? 1 : 0}
-        onselect={(t) => setShowRender(t === 1)}
+        labels={['Compiler output', 'Rendered', 'Packages']}
+        selected={rightTab()}
+        onselect={setRightTab}
       />
       <div id="message" style={{ display: message() ? 'initial' : 'none' }}>
         <pre innerHTML={message()}></pre>
       </div>
-      <Show when={!showRender()}>
-        <Editor
-          content={output()}
-          diagnostics={diagnostics().filter((d) => d.file === 'output')}
-          readonly
-        />
-      </Show>
-      <Show when={showRender()}>
-        <Render frag={output()} entrypoint="main" />
-      </Show>
+      <Switch>
+        <Match when={rightTab() === 0}>
+          <Editor
+            content={output()}
+            diagnostics={diagnostics().filter((d) => d.file === 'output')}
+            readonly
+          />
+        </Match>
+        <Match when={rightTab() === 1}>
+          <Render frag={output()} entrypoint="main" />
+        </Match>
+        <Match when={rightTab() === 2}>
+          <PackageExplorer />
+        </Match>
+      </Switch>
     </div>
   </div>
 )

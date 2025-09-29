@@ -449,3 +449,45 @@ input[type='text'] {
     background-color: black;
   }
 }
+
+.packages {
+  height: 100%;
+  overflow: hidden;
+
+  .preview {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    >.preview-header {
+      width: 100%;
+      border-bottom: 1px solid $border-col;
+      padding: .5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      >button {
+        width: 1.4rem;
+        height: 1.4rem;
+      }
+
+      svg {
+        width: 100%;
+        height: 100%;
+        stroke: $text-col;
+        transition: all 0.1s ease;
+      }
+    }
+  }
+
+  .list {
+    height: 100%;
+    overflow: auto;
+
+    a {
+      cursor: pointer;
+    }
+  }
+}
