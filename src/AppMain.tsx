@@ -79,16 +79,28 @@ createEffect(() => {
   }
 })
 
+// ensure that the selected tab is in range.
+createEffect(() => {
+  if (tab() >= files.length) {
+    setTab(Math.min(tab() - 1, files.length - 1))
+  }
+})
+
 function removeIndex<T>(array: readonly T[], index: number): T[] {
   return [...array.slice(0, index), ...array.slice(index + 1)]
 }
 
 const newFile = () => {
-  setFiles(files.length, { name: `tab${files.length + 1}`, source: '' })
+  let i = files.length + 1
+  while (files.find((f) => f.name === `tab${i}`)) i++
+  const name = `tab${i}`
+  setFiles(files.length, { name, source: '' })
   setTab(files.length - 1)
 }
 
 const delFile = (i: number) => {
+  let filename = files[i].name
+  alert(`Confirm deletion of ${filename}?`)
   setFiles((files) => removeIndex(files, i))
 }
 

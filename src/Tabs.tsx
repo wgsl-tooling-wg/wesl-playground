@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, Show } from 'solid-js'
+import { For, mergeProps, Show } from 'solid-js'
 import { BsX as CloseIcon, BsPlus as AddIcon } from 'solid-icons/bs'
 
 export interface TabButtonProps {
@@ -53,9 +53,9 @@ export const TabButton = (props: TabButtonProps) => {
         {props.name}
       </div>
       <Show when={props.closable}>
-      <button onclick={onclose}>
-        <CloseIcon />
-      </button>
+        <button onclick={onclose}>
+          <CloseIcon />
+        </button>
       </Show>
     </div>
   )
@@ -73,33 +73,24 @@ export interface TabProps {
   oncreate?: () => void
 }
 
-export const Tabs = (props: TabProps) => {
-  const [tab, setTab] = createSignal(0)
+export const Tabs = (props_: TabProps) => {
+  const props = mergeProps({ selected: 0 }, props_)
 
-  createEffect(() => {
-    if (props.selected != tab() || props.labels.length <= tab()) {
-      const n = Math.min(props.selected ?? 0, props.labels.length - 1)
-      setTab(n)
-      props.onselect?.(n)
-    }
-  })
-
-  function onselect(n: number) {
+  function onselect(n: () => number) {
     return () => {
-      setTab(n)
-      props.onselect?.(n)
+      props.onselect?.(n())
     }
   }
 
-  function onedit(n: number) {
+  function onedit(n: () => number) {
     return (label: string) => {
-      props.onedit?.(n, label)
+      props.onedit?.(n(), label)
     }
   }
 
-  function onclose(n: number) {
+  function onclose(n: () => number) {
     return () => {
-      props.onclose?.(n)
+      props.onclose?.(n())
     }
   }
 
@@ -109,12 +100,12 @@ export const Tabs = (props: TabProps) => {
         {(label, i) => (
           <TabButton
             name={label}
-            selected={i() === tab()}
-            onselect={onselect(i())}
+            selected={i() === props.selected}
+            onselect={onselect(i)}
             editable={props.editable}
-            onedit={onedit(i())}
+            onedit={onedit(i)}
             closable={props.closable}
-            onclose={onclose(i())}
+            onclose={onclose(i)}
           />
         )}
       </For>
