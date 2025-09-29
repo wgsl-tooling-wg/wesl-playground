@@ -6,29 +6,19 @@ import * as WeslJs from 'wesl'
 import bevy_wgsl from './packages/bevy_wgsl.json'
 import lygia_wgsl from './packages/lygia_wgsl.json'
 
-type Pkg = { [k: string]: string | Pkg }
-
-function flattenPkgFiles(pkg: Pkg, parent: string): [string, string][] {
-  return Object.entries(pkg).flatMap(([k, v]) => {
-    const name = `${parent}::${k}`
-    if (typeof v === 'string') {
-      return [[name, v]]
-    } else {
-      return flattenPkgFiles(v, name)
-    }
-  })
-}
-
 export async function compileRs(files: Files, options: Options) {
   await InitWeslRs()
 
-  const flatFiles = Object.fromEntries([
-    ...files.map(({ name, source }) => ['package::' + name, source]),
-    ...flattenPkgFiles(bevy_wgsl, 'bevy'),
-    ...flattenPkgFiles(lygia_wgsl, 'lygia'),
-  ])
+  const flatFiles = Object.assign(
+    {},
+    bevy_wgsl,
+    lygia_wgsl,
+    Object.fromEntries(
+      files.map(({ name, source }) => ['package::' + name, source]),
+    ),
+  )
 
-  console.log('files', flatFiles)
+  console.log('files', Object.keys(flatFiles))
 
   const params = {
     ...options,
